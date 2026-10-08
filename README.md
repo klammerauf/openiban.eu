@@ -3,6 +3,36 @@
 Eigenständiges, nichtkommerzielles Projekt zur IBAN-Prüfung und Abfrage von
 Bankdaten, zunächst für Deutschland. Die API läuft mit FastAPI, versionierten Bundesbank-Daten und automatischer Aktualisierung. Keine ERP-Abhängigkeit.
 
+## Öffentlichen Dienst nutzen – ohne eigene Installation
+
+Du kannst OpenIBAN.eu direkt über die gehostete API verwenden. Du musst dafür
+keinen Server betreiben und keine Bankdaten selbst importieren.
+
+- **API-Basisadresse:** https://api.openiban.eu
+- **Interaktive API-Dokumentation:** https://api.openiban.eu/docs
+- **Bereitschaft und aktive Datenversion:** https://api.openiban.eu/health/ready
+
+Die API ist derzeit ohne Registrierung und API-Schlüssel nutzbar. Zum Start
+werden deutsche IBANs unterstützt. Beispiel:
+
+```bash
+curl -sS https://api.openiban.eu/v1/validate \
+  -H 'Content-Type: application/json' \
+  -d '{"iban":"DE58 1234 5678 0123 4567 89"}'
+```
+
+Das Beispiel ist synthetisch: Eine korrekte IBAN-Prüfsumme bestätigt weder eine
+existierende Bankverbindung noch ein Konto. Werte auch `bank_lookup_status`
+und `bank_code_valid` aus.
+
+Der öffentliche Dienst begrenzt die Anfragerate; bei HTTP 429 mit einer Pause
+und begrenzten Wiederholungsversuchen reagieren. IBANs nur im JSON-Body senden,
+nicht als URL-Parameter.
+
+Die Website mit einem eigenen Prüfformular unter `openiban.eu` ist noch in
+Vorbereitung. Bereits verfügbar ist der API-Dienst unter `api.openiban.eu`.
+Die folgenden Installationsschritte sind für Entwicklung und eigenen Betrieb gedacht.
+
 ## Funktionsumfang
 
 - Deutsche IBAN: Leerzeichen entfernen, ASCII-Großschreibung, Format/Länge und MOD-97 prüfen.
