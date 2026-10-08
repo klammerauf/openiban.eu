@@ -327,7 +327,7 @@ def test_international_mod97_and_local_bank_api(engine, tmp_path, country):
         response = client.post("/v1/validate", json={"iban": value}).json()
         assert response["bank_lookup_status"] == "found"
         assert response["bank"]["name"].startswith("Synthetic Bank")
-        assert response["data"]["source"] == "Quelle: " + SOURCES[country].publisher
+        assert response["data"]["source"] == "Source: " + SOURCES[country].publisher
         assert len(client.get("/v1/countries").json()["countries"]) == len(COUNTRIES)
 
 
@@ -440,7 +440,7 @@ def test_bounded_download_and_http_failure(monkeypatch):
             raise HTTPError(request.full_url, 403, "Forbidden", {}, None)
 
     monkeypatch.setattr("openiban.directory_download.build_opener", lambda handler: FailingOpener())
-    with pytest.raises(ValueError, match="nicht erreichbar"):
+    with pytest.raises(ValueError, match="unreachable"):
         fetch("CZ", SOURCES["CZ"].download)
 
 

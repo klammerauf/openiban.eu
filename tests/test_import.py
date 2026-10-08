@@ -14,7 +14,7 @@ def test_parse_umlauts_and_ignore_deleted_branch():
     assert parsed.total_rows == 2
     assert parsed.ignored_branch_rows == 1
     assert len(parsed.records) == 1
-    assert parsed.records[0].name == "Musterbank München"
+    assert parsed.records[0].name == "Example Bank München"
 
 
 @pytest.mark.parametrize(
@@ -48,14 +48,14 @@ def test_stage_idempotency_activation_and_rollback(engine, import_file):
     assert repeated["already_imported"] is True
     assert repeated["version"] == first["version"]
     activate(engine, first["version"])
-    assert lookup(engine, "12345678")[1]["name"] == "Musterbank München"
-    second = import_file(bank_line(name="Neue Musterbank") + b"\n")
+    assert lookup(engine, "12345678")[1]["name"] == "Example Bank München"
+    second = import_file(bank_line(name="New Example Bank") + b"\n")
     assert second["changed"] == 1
-    assert lookup(engine, "12345678")[1]["name"] == "Musterbank München"
+    assert lookup(engine, "12345678")[1]["name"] == "Example Bank München"
     activate(engine, second["version"])
-    assert lookup(engine, "12345678")[1]["name"] == "Neue Musterbank"
+    assert lookup(engine, "12345678")[1]["name"] == "New Example Bank"
     activate(engine, first["version"])
-    assert lookup(engine, "12345678")[1]["name"] == "Musterbank München"
+    assert lookup(engine, "12345678")[1]["name"] == "Example Bank München"
     with engine.connect() as conn:
         history = conn.execute(select(activations)).mappings().all()
     assert len(history) == 3
@@ -73,14 +73,14 @@ def test_bad_import_does_not_modify_active_version(engine, import_file):
 
 def test_future_version_requires_its_validity_date(engine, import_file):
     result = import_file(start=today() + timedelta(days=5))
-    with pytest.raises(ValueError, match="noch nicht"):
+    with pytest.raises(ValueError, match="not yet"):
         activate(engine, result["version"])
     assert lookup(engine, "12345678") == (None, None)
 
 
 def test_expired_rollback_never_looks_current(engine, import_file):
     result = import_file(start=today() - timedelta(days=10), end=today() - timedelta(days=1))
-    with pytest.raises(ValueError, match="abgelaufen"):
+    with pytest.raises(ValueError, match="expired"):
         activate(engine, result["version"])
     activate(engine, result["version"], allow_expired=True)
     info, bank = lookup(engine, "12345678")
@@ -97,7 +97,7 @@ def test_validity_boundaries_are_inclusive(engine, import_file):
 
 def test_conflicting_dates_for_same_file_are_rejected(import_file):
     import_file()
-    with pytest.raises(ValueError, match="anderem Gültigkeitszeitraum"):
+    with pytest.raises(ValueError, match="different validity period"):
         import_file(end=today() + timedelta(days=60))
 
 

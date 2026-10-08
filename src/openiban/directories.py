@@ -124,10 +124,10 @@ def text(value) -> str:
         return ""
     if isinstance(value, (int, float)) and not isinstance(value, bool):
         if int(value) != value:
-            raise ValueError("Nicht-ganzzahlige Kennung im Verzeichnis.")
+            raise ValueError("Non-integer identifier in directory.")
         return str(int(value))
     if not isinstance(value, str):
-        raise ValueError("Unerwarteter Feldtyp im Verzeichnis.")
+        raise ValueError("Unexpected field type in directory.")
     return value.strip()
 
 
@@ -136,14 +136,14 @@ def bic(value) -> str | None:
     if value in {"", "/", "N/A", "nav", "NAV", "NYA", "-"}:
         return None
     if not BIC.fullmatch(value):
-        raise ValueError("Ungültiger BIC im Verzeichnis.")
+        raise ValueError("Invalid BIC in directory.")
     return value
 
 
 def numeric(value, width: int) -> str:
     value = text(value)
     if not re.fullmatch(r"[0-9]{1," + str(width) + "}", value):
-        raise ValueError("Ungültige numerische Bankkennung.")
+        raise ValueError("Invalid numeric bank identifier.")
     return value.zfill(width)
 
 
@@ -151,9 +151,9 @@ def csv_rows(content: bytes, encoding: str = "utf-8-sig") -> list[list[str]]:
     try:
         rows = list(csv.reader(io.StringIO(content.decode(encoding)), delimiter=";", strict=True))
     except (UnicodeError, csv.Error) as exc:
-        raise ValueError("Ungültige CSV-Datei/Zeichencodierung.") from exc
+        raise ValueError("Invalid CSV file or character encoding.") from exc
     if len(rows) < 2 or any(not row for row in rows):
-        raise ValueError("Leere Zeilen oder fehlende Daten in CSV.")
+        raise ValueError("Empty rows or missing data in CSV.")
     return rows
 
 
@@ -163,21 +163,21 @@ def spreadsheet_rows(content: bytes, legacy: bool = False) -> list[list]:
             book = open_workbook(file_contents=content)
             sheets = [s for s in book.sheets() if s.nrows]
             if len(sheets) != 1 or sheets[0].nrows > MAX_ROWS:
-                raise ValueError("Erwartet wird genau ein nicht-leeres Tabellenblatt.")
+                raise ValueError("Exactly one non-empty worksheet is required.")
             return [sheets[0].row_values(i) for i in range(sheets[0].nrows)]
         # Bound decompression before openpyxl parses XML (zip bombs / huge sheets).
         with ZipFile(io.BytesIO(content)) as archive:
             if sum(item.file_size for item in archive.infolist()) > MAX_BYTES * 5:
-                raise ValueError("Entpackte XLSX-Datei ist zu groß.")
+                raise ValueError("Uncompressed XLSX file is too large.")
         book = load_workbook(io.BytesIO(content), read_only=True, data_only=False)
         try:
             sheets = [s for s in book if s.max_row and s.max_column]
             if len(sheets) != 1 or sheets[0].max_row > MAX_ROWS or sheets[0].max_column > 40:
-                raise ValueError("Unerwartete Tabellenstruktur.")
+                raise ValueError("Unexpected table structure.")
             rows = []
             for cells in sheets[0].iter_rows():
                 if any(c.data_type in {"f", "e"} for c in cells):
-                    raise ValueError("Formel/Fehlerzelle in Quelldatei.")
+                    raise ValueError("Formula or error cell in source file.")
                 rows.append([c.value for c in cells])
             return rows
         finally:
@@ -191,7 +191,7 @@ def spreadsheet_rows(content: bytes, legacy: bool = False) -> list[list]:
         InvalidFileException,
         DefusedXmlException,
     ) as exc:
-        raise ValueError("Ungültige Tabellen-Datei.") from exc
+        raise ValueError("Invalid spreadsheet file.") from exc
 
 
 def parse_ch(content: bytes) -> Directory:
@@ -220,16 +220,16 @@ def parse_ch(content: bytes) -> Directory:
         "LSV+/BDD, EUR",
     ]
     if rows[0][:-1] != headers or not re.fullmatch(r"[0-9]{14,15}", rows[0][-1]):
-        raise ValueError("Unbekannter Swiss Bank Master v3 Header.")
+        raise ValueError("Unknown Swiss Bank Master v3 header.")
     records, dates = [], set()
     for r in rows[1:]:
         if len(r) != 21:
-            raise ValueError("Swiss Bank Master: falsche Spaltenzahl.")
+            raise ValueError("Swiss Bank Master: incorrect column count.")
         code = numeric(r[0], 5)
         dates.add(date.fromisoformat(r[1]))
         if r[2] == "Y":
             if any(r[4:]):
-                raise ValueError("Verkettete IID enthält unerwartete aktive Felder.")
+                raise ValueError("Concatenated IID contains unexpected active fields.")
             records.append(
                 Record(code, "", None, change_flag="D", successor_bank_code=numeric(r[3], 5))
             )
@@ -237,16 +237,16 @@ def parse_ch(content: bytes) -> Directory:
             numeric(r[4], 6)
             numeric(r[5], 5)
             if r[3] or any(v not in {"Y", "N"} for v in r[15:]):
-                raise ValueError("Ungültige SIX Statusfelder.")
+                raise ValueError("Invalid SIX status fields.")
             if r[6] == "4":
                 numeric(r[7], 5)
                 if not 30000 <= int(code) <= 31999:
-                    raise ValueError("QR-IID außerhalb des Bereichs.")
+                    raise ValueError("QR-IID outside the allowed range.")
             records.append(Record(code, r[8], bic(r[14]), r[11], r[12]))
         else:
-            raise ValueError("Unbekannter IID-Status.")
+            raise ValueError("Unknown IID status.")
     if len(dates) != 1:
-        raise ValueError("Uneinheitlicher SIX Gültigkeitstag.")
+        raise ValueError("Inconsistent SIX validity date.")
     return Directory(records, len(rows) - 1, published_on=dates.pop())
 
 
@@ -255,7 +255,7 @@ def parse_pl(content: bytes) -> Directory:
         obj = {}
         for key, value in pairs:
             if key in obj:
-                raise ValueError("Doppelter JSON-Schlüssel.")
+                raise ValueError("Duplicate JSON key.")
             obj[key] = value
         return obj
 
@@ -263,7 +263,7 @@ def parse_pl(content: bytes) -> Directory:
         data = json.loads(content, object_pairs_hook=unique_pairs)
         owners = data["listaWlascicieli"]
         if not isinstance(owners, list):
-            raise ValueError("EWIB: fehlende Eigentümerliste.")
+            raise ValueError("EWIB: missing owner list.")
         records = []
         for owner in owners:
             name = text(owner["nazwa"])
@@ -276,7 +276,7 @@ def parse_pl(content: bytes) -> Directory:
                         bic(b["numer"]) for b in entry.get("numeryBic", []) if b["nazwa"] == "BIC"
                     }
                     if len(bics) > 1:
-                        raise ValueError("EWIB: mehrdeutiger BIC.")
+                        raise ValueError("EWIB: ambiguous BIC.")
                     records.append(
                         Record(
                             numeric(entry["numer"], 8),
@@ -288,7 +288,7 @@ def parse_pl(content: bytes) -> Directory:
                     )
         return Directory(records, len(records))
     except (KeyError, TypeError, UnicodeError, json.JSONDecodeError) as exc:
-        raise ValueError("Unbekanntes EWIB JSON-Schema.") from exc
+        raise ValueError("Unknown EWIB JSON schema.") from exc
 
 
 def parse_lt(content: bytes) -> Directory:
@@ -311,14 +311,14 @@ def parse_lt(content: bytes) -> Directory:
         "",
         "",
     ]:
-        raise ValueError("Unbekannter litauischer CSV-Header (englischer Export erforderlich).")
+        raise ValueError("Unknown Lithuanian CSV header (English export required).")
     records = []
     # This export ends with a fully empty padded row; internal gaps still fail.
     while len(rows) > 1 and not any(rows[-1]):
         rows.pop()
     for r in rows[1:]:
         if len(r) != 15 or any(r[10:]):
-            raise ValueError("Unbekannte litauische CSV-Spalten.")
+            raise ValueError("Unknown Lithuanian CSV columns.")
         records.append(Record(numeric(r[0], 5), r[2], bic(r[1]), r[7], r[5]))
     return Directory(records, len(records))
 
@@ -331,11 +331,11 @@ def parse_cz(content: bytes) -> Directory:
         "BIC kód (SWIFT)",
         "Systém CERTIS",
     ]:
-        raise ValueError("Unbekannter CNB CSV-Header.")
+        raise ValueError("Unknown CNB CSV header.")
     records = []
     for r in rows[1:]:
         if len(r) != 4 or r[3].strip() not in {"A", "-"}:
-            raise ValueError("Ungültige CNB Zeile.")
+            raise ValueError("Invalid CNB row.")
         records.append(Record(numeric(r[0], 4), r[1], bic(r[2])))
     return Directory(records, len(records))
 
@@ -350,10 +350,10 @@ def parse_be(content: bytes) -> Directory:
         "T_Institutions_German",
         "T_Institutions_English",
     ]:
-        raise ValueError("Unbekannter NBB XLSX-Header.")
+        raise ValueError("Unknown NBB XLSX header.")
     version = re.fullmatch(r"Version ([0-9]{2})/([0-9]{2})/([0-9]{4})", text(rows[0][0]))
     if not version:
-        raise ValueError("Fehlende NBB Versionsangabe.")
+        raise ValueError("Missing NBB version date.")
     published = date(int(version[3]), int(version[2]), int(version[1]))
     records, ignored = [], 0
     for r in rows[2:]:
@@ -371,16 +371,16 @@ def parse_be(content: bytes) -> Directory:
 def parse_lv(content: bytes) -> Directory:
     rows = spreadsheet_rows(content, legacy=True)
     if len(rows) < 3 or rows[1] != ["", "Payment service provider", "IBAN structure", "BIC"]:
-        raise ValueError("Unbekannter Latvijas Banka XLS-Header.")
+        raise ValueError("Unknown Latvijas Banka XLS header.")
     records = []
     for r in rows[2:]:
         structure = "".join(text(r[2]).split())
         if not re.fullmatch(r"LV\*\*[A-Z]{4}\*{13}", structure):
-            raise ValueError("Ungültige lettische IBAN-Struktur.")
+            raise ValueError("Invalid Latvian IBAN structure.")
         value = bic(r[3])
         code = structure[4:8]
         if not value or value[:4] != code or value[4:6] != "LV":
-            raise ValueError("IBAN/BIC-Zuordnung widersprüchlich.")
+            raise ValueError("Conflicting IBAN/BIC mapping.")
         records.append(Record(code, text(r[1]), value))
     return Directory(records, len(records))
 
@@ -389,7 +389,7 @@ def parse_si(content: bytes) -> Directory:
     soup = BeautifulSoup(content.decode("utf-8-sig"), "html.parser")
     tables = [t for t in soup.find_all("table") if "BIC KODA" in t.get_text(" ", strip=True)]
     if len(tables) != 1:
-        raise ValueError("Slowenische BIC-Tabelle fehlt oder ist mehrdeutig.")
+        raise ValueError("Slovenian BIC table is missing or ambiguous.")
     records, spans = [], {}
     for row in tables[0].find_all("tr")[1:]:
         cells = iter(row.find_all(["td", "th"], recursive=False))
@@ -404,19 +404,19 @@ def parse_si(content: bytes) -> Directory:
             else:
                 cell = next(cells, None)
                 if cell is None or cell.get("colspan", "1") != "1":
-                    raise ValueError("Unbekannte slowenische Tabellenstruktur.")
+                    raise ValueError("Unknown Slovenian table structure.")
                 value = cell.get_text(" ", strip=True)
                 count = int(cell.get("rowspan", "1"))
                 if not 1 <= count <= 10:
-                    raise ValueError("Ungültiges rowspan.")
+                    raise ValueError("Invalid rowspan.")
                 if count > 1:
                     spans[col] = (value, count - 1)
             values.append(value)
         if next(cells, None) is not None:
-            raise ValueError("Zusätzliche slowenische Tabellenspalte.")
+            raise ValueError("Unexpected extra Slovenian table column.")
         records.append(Record(values[3], values[0], bic(values[2])))
     if spans:
-        raise ValueError("Abgeschnittene slowenische Tabelle.")
+        raise ValueError("Truncated Slovenian table.")
     return Directory(records, len(records))
 
 
@@ -433,7 +433,7 @@ def parse_gr(content: bytes) -> Directory:
             header = index, code[0], bics[0], names[0]
             break
     if header is None:
-        raise ValueError("Unbekannter Bank of Greece XLSX-Header; Quellprüfung erforderlich.")
+        raise ValueError("Unknown Bank of Greece XLSX header; source review required.")
     index, code, bics, names = header
     records = []
     for r in rows[index + 1 :]:
@@ -457,11 +457,11 @@ PARSERS = {
 
 def parse_directory(country: str, content: bytes) -> Directory:
     if country not in SOURCES or not content or len(content) > MAX_BYTES:
-        raise ValueError("Unbekanntes Land, leere oder zu große Quelldatei.")
+        raise ValueError("Unknown country, empty or oversized source file.")
     try:
         result = PARSERS[country](content)
     except (UnicodeError, IndexError, AttributeError) as exc:
-        raise ValueError("Unbekannte oder beschädigte Quellstruktur.") from exc
+        raise ValueError("Unknown or damaged source structure.") from exc
     seen = set()
     for record in result.records:
         if (
@@ -473,8 +473,8 @@ def parse_directory(country: str, content: bytes) -> Directory:
             or (not record.name and record.change_flag != "D")
             or any(ord(c) < 32 for c in record.name + record.city + record.postal_code)
         ):
-            raise ValueError("Ungültiger oder doppelter Bankdatensatz.")
+            raise ValueError("Invalid or duplicate bank record.")
         seen.add(record.bank_code)
     if not result.records or len(result.records) > MAX_ROWS:
-        raise ValueError("Keine Bankdaten oder zu viele Datensätze.")
+        raise ValueError("No bank data or too many records.")
     return result

@@ -1,19 +1,20 @@
 # OpenIBAN.eu
 
-Eigenständiges, nichtkommerzielles Projekt zur IBAN-Prüfung und Abfrage von
-Bankdaten für DE, CH, PL, LT, BE, CZ, LV, SI und GR (GR-Importer vorläufig). Die API läuft mit FastAPI, versionierten Bundesbank-Daten und automatischer Aktualisierung. Keine ERP-Abhängigkeit.
+Independent, non-commercial project for IBAN validation and bank data lookup for
+DE, CH, PL, LT, BE, CZ, LV, SI and GR (GR importer provisional). The API uses
+FastAPI, versioned Bundesbank data and automatic updates. No ERP dependency.
 
-## Öffentlichen Dienst nutzen – ohne eigene Installation
+## Use the public service without installing it
 
-Du kannst OpenIBAN.eu direkt über die gehostete API verwenden. Du musst dafür
-keinen Server betreiben und keine Bankdaten selbst importieren.
+Use OpenIBAN.eu directly through the hosted API. You do not need to operate a
+server or import bank data yourself.
 
-- **API-Basisadresse:** https://api.openiban.eu
-- **Interaktive API-Dokumentation:** https://api.openiban.eu/docs
-- **Bereitschaft und aktive Datenversion:** https://api.openiban.eu/health/ready
+- **API base URL:** https://api.openiban.eu
+- **Interactive API documentation:** https://api.openiban.eu/docs
+- **Readiness and active dataset version:** https://api.openiban.eu/health/ready
 
-Die API ist derzeit ohne Registrierung und API-Schlüssel nutzbar. Zum Start
-werden deutsche IBANs unterstützt. Beispiel:
+The API currently requires no registration or API key. The initial public
+service supports German IBANs. Example:
 
 ```bash
 curl -sS https://api.openiban.eu/v1/validate \
@@ -21,35 +22,35 @@ curl -sS https://api.openiban.eu/v1/validate \
   -d '{"iban":"DE58 1234 5678 0123 4567 89"}'
 ```
 
-Das Beispiel ist synthetisch: Eine korrekte IBAN-Prüfsumme bestätigt weder eine
-existierende Bankverbindung noch ein Konto. Werte auch `bank_lookup_status`
-und `bank_code_valid` aus.
+This example is synthetic: a correct IBAN checksum confirms neither an existing
+bank relationship nor an account. Also evaluate `bank_lookup_status` and
+`bank_code_valid`.
 
-Der öffentliche Dienst begrenzt die Anfragerate; bei HTTP 429 mit einer Pause
-und begrenzten Wiederholungsversuchen reagieren. IBANs nur im JSON-Body senden,
-nicht als URL-Parameter.
+The public service limits request rates. Handle HTTP 429 with a delay and a
+limited number of retries. Send IBANs only in the JSON body, never as URL parameters.
 
-Die Website mit einem eigenen Prüfformular unter `openiban.eu` ist noch in
-Vorbereitung. Bereits verfügbar ist der API-Dienst unter `api.openiban.eu`.
-Die folgenden Installationsschritte sind für Entwicklung und eigenen Betrieb gedacht.
+The website with its own validation form at `openiban.eu` is still in preparation.
+The API service at `api.openiban.eu` is already available. The installation steps
+below are intended for development and self-hosting.
 
-## Funktionsumfang
+## Features
 
-- IBANs der neun genannten Länder: Leerzeichen entfernen, ASCII-Großschreibung, Landesformat/Länge und MOD-97 prüfen.
-- Bankname, BIC, BLZ, Postleitzahl und Ort aus dem aktiven Bundesbank-Datenbestand liefern.
-- Unbekannte/gelöschte BLZ, fehlende Daten und abgelaufene Daten unterscheiden.
-- Öffentliche Bundesbank-TXT prüfen, versioniert importieren und ausdrücklich aktivieren.
-- Frühere Datenversion wieder aktivieren; Aktivierungsverlauf bleibt erhalten.
-- OpenAPI-Dokumentation unter `/docs` und automatische Tests in GitHub Actions.
+- IBANs from the nine listed countries: remove spaces, uppercase ASCII letters,
+  validate country format/length and MOD-97.
+- Return bank name, BIC, BLZ, postal code and city from the active Bundesbank dataset.
+- Distinguish unknown/deleted bank codes, missing data and expired data.
+- Validate the public Bundesbank TXT file, import a version and explicitly activate it.
+- Reactivate an earlier dataset version while retaining activation history.
+- OpenAPI documentation at `/docs` and automated tests in GitHub Actions.
 
-`iban_valid` bedeutet **Format und IBAN-Prüfsumme korrekt**. Es bestätigt weder
-Kontoexistenz noch Kontoinhaber, Zahlungsfähigkeit oder nationale
-Kontoprüfzifferverfahren. Der BLZ-Status steht separat in `bank_code_valid`.
-Weitere Länder liefern `reason: unsupported_country` und `iban_valid: null`.
-Die neuen Importer sind nicht automatisch auf dem öffentlichen Dienst aktiviert;
-Quellenprüfung, Anleitung und offene Freigaben: [Europäische Verzeichnisse](docs/european-directories.md).
+`iban_valid` means **correct format and IBAN checksum**. It does not confirm account
+existence, account ownership, solvency or domestic account checksum algorithms.
+The bank-code status is reported separately in `bank_code_valid`.
+Other countries return `reason: unsupported_country` and `iban_valid: null`.
+The new importers are not automatically activated on the public service.
+Source review, instructions and outstanding approvals: [European directories](docs/european-directories.md).
 
-## Lokal starten (Python 3.12)
+## Run locally (Python 3.12)
 
 ```bash
 git clone https://github.com/klammerauf/openiban.eu.git
@@ -62,66 +63,64 @@ openiban init-db
 uvicorn openiban.api:app --host 127.0.0.1 --port 8000 --no-access-log
 ```
 
-Windows PowerShell: statt `source` den Befehl `.venv\Scripts\Activate.ps1` verwenden.
-Die Datenbank liegt standardmäßig unter `data/openiban.db`, relativ zum
-Arbeitsverzeichnis. API und Importbefehle aus demselben Verzeichnis starten.
-`OPENIBAN_DATABASE_URL` kann einen anderen Datenbankpfad festlegen; `.env.example`
-zeigt das Format. Eine `.env`-Datei wird nicht automatisch geladen.
+Windows PowerShell: use `.venv\Scripts\Activate.ps1` instead of `source`.
+The default database is `data/openiban.db`, relative to the working directory.
+Start the API and import commands from the same directory. `OPENIBAN_DATABASE_URL`
+can specify another database location; `.env.example` shows the format.
+A `.env` file is not loaded automatically.
 
-SQLite ermöglicht den lokalen Einstieg ohne Datenbankserver. SQLAlchemy bereitet
-PostgreSQL vor (`pip install -e '.[postgres]'` und eine passende Verbindungs-URL).
-Dieser erste Stand wurde mit SQLite getestet; PostgreSQL-Integrationstests und
-Schema-Migrationen folgen vor einem entsprechenden Produktivbetrieb.
+SQLite allows local use without a database server. SQLAlchemy prepares for
+PostgreSQL (`pip install -e '.[postgres]'` and an appropriate connection URL).
+This initial implementation was tested with SQLite; PostgreSQL integration tests
+and schema migrations will precede production use with PostgreSQL.
 
-Ohne Datenimport funktioniert die IBAN-Prüfung bereits. Die Bankauskunft meldet
-`unavailable`, `/health/ready` liefert 503. `/health/live` zeigt die Erreichbarkeit.
+IBAN validation works before importing data. Bank lookup reports `unavailable`,
+and `/health/ready` returns 503. `/health/live` indicates reachability.
 
-## Bundesbank-Daten importieren
+## Import Bundesbank data
 
-1. Auf der [offiziellen Downloadseite](https://www.bundesbank.de/de/aufgaben/unbarer-zahlungsverkehr/serviceangebot/bankleitzahlen/download-bankleitzahlen-602592)
-   die **ungepackte öffentliche TXT-Datei** herunterladen und unter `data/blz.txt` speichern.
-   CSV, XML, ZIP und die erweiterte 174-stellige Datei werden in dieser Version nicht akzeptiert.
-2. Gültigkeitsbeginn und -ende auf der Downloadseite ablesen. Die Angaben sind
-   nicht in den TXT-Zeilen enthalten und müssen beim Import angegeben werden.
-3. Import ausführen. Beispiel für die am 5. Oktober 2026 angebotene Datei:
+1. Download the **uncompressed public TXT file** from the
+   [official download page](https://www.bundesbank.de/de/aufgaben/unbarer-zahlungsverkehr/serviceangebot/bankleitzahlen/download-bankleitzahlen-602592)
+   and save it as `data/blz.txt`. This version does not accept CSV, XML, ZIP or the
+   extended 174-character file.
+2. Read the validity start and end dates on the download page. These dates are
+   absent from the TXT rows and must be supplied during import.
+3. Run the import. Example for the file offered on 5 October 2026:
 
 ```bash
 openiban import-bundesbank data/blz.txt --valid-from 2026-09-07 --valid-until 2026-12-06
 ```
 
-Für spätere Downloads **die dazugehörigen Daten einsetzen**. Optional kann
-`--source-url` den tatsächlichen HTTPS-Downloadlink der Bundesbank dokumentieren.
-Der Import führt keine Netzwerkanfragen aus und prüft nicht die Herkunft der
-lokalen Datei. SHA-256 dient der Wiedererkennung, nicht als Signatur.
+For later downloads, **use the corresponding dates**. Optionally, `--source-url`
+records the actual Bundesbank HTTPS download URL. Import performs no network
+requests and does not verify the origin of the local file. SHA-256 identifies
+repeated files; it is not a signature.
 
-Die Ausgabe enthält Version, SHA-256, Datensatzanzahl sowie die Zahl hinzugekommener,
-entfallener und geänderter aktiver Banken gegenüber der derzeit aktiven Version.
-Diese Zusammenfassung und die Herkunft vor der Aktivierung kontrollieren.
-Auch eine formal gültige Datei kann unvollständig sein; eine vollständige
-fachliche Freigabeoberfläche ist noch nicht enthalten.
+Output includes the version, SHA-256, record count and counts of added, removed
+and changed active banks compared with the currently active version. Review this
+summary and provenance before activation. Even a formally valid file may be
+incomplete; a complete review interface is not yet included.
 
 ```bash
 openiban versions
-openiban activate HIER-DIE-AUSGEGEBENE-VERSION-EINSETZEN
+openiban activate REPLACE-WITH-REPORTED-VERSION
 ```
 
-Import und Aktivierung sind getrennt. Identische Dateien werden nicht mehrfach
-gespeichert. Fehlerhafte Imports lassen den bisherigen Bestand unverändert.
-Eine zukünftige Version kann erst ab ihrem Gültigkeitsbeginn aktiviert werden.
-Die Datumsauswertung erfolgt in `Europe/Berlin`.
+Import and activation are separate. Identical files are not stored repeatedly.
+Failed imports leave the existing dataset unchanged. Future versions can only
+be activated from their validity start date. Dates are evaluated in `Europe/Berlin`.
 
-Für einen Rollback denselben Aktivierungsbefehl mit einer früheren Version nutzen.
-Eine abgelaufene Version erfordert zusätzlich `--allow-expired`; die API meldet
-danach ausdrücklich `stale` und liefert keine veralteten Bankzuordnungen.
-Eine spätere Aktivierung ersetzt niemals Teile eines laufenden Datenbestands,
-sondern schaltet den Versionszeiger in einer Transaktion um.
+For rollback, use the same activation command with an earlier version. Expired
+versions also require `--allow-expired`; the API then explicitly reports `stale`
+and returns no outdated bank mappings. Activation switches the version pointer
+in a transaction rather than replacing parts of a live dataset.
 
-Quelldateien und lokale Datenbanken gehören nicht ins Git-Repository. Sichere sie
-bei Bedarf separat. Die Datenbank bewahrt die importierten bankleitzahlführenden
-Datensätze sowie Import- und Aktivierungsmetadaten auf; Filialdatensätze werden
-geprüft und gezählt, aber nicht gespeichert.
+Source files and local databases do not belong in the Git repository. Back them
+up separately as needed. The database retains imported bank-code-owning records
+and import/activation metadata. Branch records are validated and counted but
+not stored.
 
-## API ausprobieren
+## Try the API
 
 ```bash
 curl -X POST http://127.0.0.1:8000/v1/validate \
@@ -129,26 +128,26 @@ curl -X POST http://127.0.0.1:8000/v1/validate \
   -d '{"iban":"DE58 1234 5678 0123 4567 89"}'
 ```
 
-Dies ist ein synthetisches Beispiel. Seine Prüfsumme ist korrekt; daraus folgt
-keine reale Bank- oder Kontoverbindung. Im offiziellen Bestand kann die Antwort
-daher `bank_lookup_status: not_found` enthalten.
+This is a synthetic example. Its checksum is correct, but it does not represent
+a real bank or account relationship. Against the official dataset, the response
+may therefore contain `bank_lookup_status: not_found`.
 
-| Feld | Bedeutung |
+| Field | Meaning |
 |---|---|
-| `normalized_iban` | Normalisierte Eingabe; keine Buchstaben/Punktuation entfernt |
-| `country_supported` | Landesformat gehört zu den unterstützten Ländern |
-| `iban_valid` | Landesformat und IBAN-Prüfsumme; bei nicht unterstützten Ländern `null` |
-| `checks` | Einzelne Format-/Prüfsummenergebnisse; `null` bedeutet nicht geprüft |
+| `normalized_iban` | Normalized input; no letters or punctuation removed |
+| `country_supported` | Country format is supported |
+| `iban_valid` | Country format and IBAN checksum; `null` for unsupported countries |
+| `checks` | Individual format/checksum results; `null` means not checked |
 | `reason` | `valid`, `invalid_format`, `invalid_characters`, `invalid_checksum`, `unsupported_country` |
 | `bank_lookup_status` | `found`, `not_found`, `deleted`, `not_checked`, `unavailable`, `stale` |
-| `bank_code_valid` | BLZ im aktuellen Bestand gültig; `null` bedeutet nicht geprüft/prüfbar |
-| `bank` | Bankdaten nur für einen aktiven Treffer; sonst `null` |
-| `data` | Datenversion, Hash, Quelle, Importzeit und Gültigkeit; sonst `null` |
+| `bank_code_valid` | Bank code is valid in the current dataset; `null` means not checked/verifiable |
+| `bank` | Bank data for an active match only; otherwise `null` |
+| `data` | Dataset version, hash, source, import time and validity; otherwise `null` |
 
-Fachliche Prüfergebnisse liefern HTTP 200, auch bei ungültiger IBAN oder fehlenden
-Bankdaten. HTTP 422 kennzeichnet ein fehlerhaftes Anfrageformat, 413 einen zu
-großen Body, 400 nicht unterstützte Query-Parameter. Clients müssen die
-Ergebnisfelder auswerten. `GET /v1/countries` zeigt die unterstützten Länder.
+Validation results return HTTP 200, including invalid IBANs or missing bank data.
+HTTP 422 indicates an invalid request format, 413 an oversized body, and 400
+unsupported query parameters. Clients must evaluate the result fields.
+`GET /v1/countries` lists supported countries.
 
 ## Tests
 
@@ -158,31 +157,32 @@ ruff format --check .
 pytest -q
 ```
 
-Die Tests verwenden ausschließlich synthetische Datensätze und benötigen keine
-Netzwerkverbindung oder Bundesbank-Downloads. `requirements-dev.lock` fixiert die
-Entwicklungsabhängigkeiten. Aktualisieren mit:
+Tests use only synthetic records and require no network connection or Bundesbank
+downloads. `requirements-dev.lock` pins development dependencies. Update it with:
 
 ```bash
 uv pip compile pyproject.toml --extra dev --python-version 3.12 --output-file requirements-dev.lock
 ```
 
-## Datenquelle, Lizenz und nächste Schritte
+## Data source, license and next steps
 
-**Quelle Deutschland: Deutsche Bundesbank.** Weitere Länder: [Importer und Nutzungsbedingungen](docs/european-directories.md). Siehe [Quellen und Nutzungsbedingungen](docs/data-sources.md).
-Der Programmcode steht unter der [MIT-Lizenz](LICENSE).
-Copyright (c) 2026 Sebastian Arnold. Die Nutzungsbedingungen der Bundesbank-Daten
-gelten unabhängig davon; die MIT-Lizenz erteilt keine zusätzlichen Rechte an diesen Daten.
+**German source: Deutsche Bundesbank.** Additional countries:
+[Importers and terms of use](docs/european-directories.md). See also
+[Sources and terms of use](docs/data-sources.md).
+The code is licensed under the [MIT License](LICENSE).
+Copyright (c) 2026 Sebastian Arnold. Bundesbank data terms apply independently;
+the MIT License grants no additional rights to that data.
 
-Die API wird unter https://api.openiban.eu auf einem Ubuntu-Server bei Hetzner
-betrieben. Nginx übernimmt HTTPS und Rate-Limits. Die Website bei lima-city und
-der geschützte Maintainer-Bereich sind noch geplant.
-Details: [Roadmap](docs/roadmap.md) und [Betrieb](docs/operations.md).
+The API runs at https://api.openiban.eu on an Ubuntu server at Hetzner.
+Nginx provides HTTPS and rate limits. The lima-city website and protected
+maintainer area are still planned. Details: [Roadmap](docs/roadmap.md) and
+[Operations](docs/operations.md).
 
-E-Mail-Warnungen: [Installation und Betrieb](deployment/notifications/README.md).
-SMTP-Zugangsdaten und Empfänger werden ausschließlich auf dem Server eingerichtet.
+Email warnings: [Installation and operations](deployment/notifications/README.md).
+SMTP credentials and recipients are configured exclusively on the server.
 
-## Automatische Bundesbank-Aktualisierung (0.2.0)
+## Automatic Bundesbank updates (0.2.0)
 
-Täglicher Download, Qualitätsprüfung und Aktivierung ab Gültigkeitstag sind als lokale
-Maintainer-CLI und systemd-Timer verfügbar. Installation, Grenzwerte, Überwachung und
-Rollback: [deployment/auto-update/README.md](deployment/auto-update/README.md).
+Daily downloads, quality checks and activation from the validity start date are
+available through the local maintainer CLI and systemd timers. Installation,
+thresholds, monitoring and rollback: [deployment/auto-update/README.md](deployment/auto-update/README.md).

@@ -86,12 +86,12 @@ def stage_directory(
 ) -> dict:
     validate_url(country, source_url)
     if valid_until < valid_from:
-        raise ValueError("Gültigkeitsende liegt vor Beginn.")
+        raise ValueError("Validity end date precedes the start date.")
     with path.open("rb") as handle:
         content = handle.read(MAX_BYTES + 1)
     parsed = parse_directory(country, content)
     if parsed.published_on and valid_from < parsed.published_on:
-        raise ValueError("Gültigkeitsbeginn liegt vor dem offiziellen Stand.")
+        raise ValueError("Validity start date precedes the official source date.")
     digest = hashlib.sha256(content).hexdigest()
     with engine.begin() as conn:
         existing = (
@@ -107,7 +107,7 @@ def stage_directory(
                 or existing["valid_until"] != valid_until
                 or existing["source_url"] != source_url
             ):
-                raise ValueError("Identische Datei mit abweichender Provenienz/Gültigkeit.")
+                raise ValueError("Identical file with different provenance or validity.")
             return {
                 "version": existing["id"],
                 "country": country,
@@ -166,7 +166,7 @@ def activate_directory(
     expected_previous_id: str | None = None,
 ) -> None:
     if country not in SOURCES or not review_note.strip() or len(review_note) > 2000:
-        raise ValueError("Land und dokumentierte Quellen-/Nutzungsprüfung erforderlich.")
+        raise ValueError("Country and documented source/usage review required.")
     with engine.begin() as conn:
         conn.execute(
             update(active).where(active.c.country == country).values(dataset_id=active.c.dataset_id)
@@ -179,15 +179,15 @@ def activate_directory(
             .first()
         )
         if row is None:
-            raise ValueError("Unbekannte Version für dieses Land.")
+            raise ValueError("Unknown version for this country.")
         status = dataset_status(dict(row), on_date or today())
         if status == "not_yet_valid" or (status == "expired" and not allow_expired):
-            raise ValueError("Version noch nicht gültig oder abgelaufen.")
+            raise ValueError("Version is not yet valid or has expired.")
         previous = conn.execute(
             select(active.c.dataset_id).where(active.c.country == country)
         ).scalar_one()
         if expected_previous_id is not None and expected_previous_id != previous:
-            raise ValueError("Aktiver Bestand wurde inzwischen geändert.")
+            raise ValueError("Active dataset has changed.")
         conn.execute(update(active).where(active.c.country == country).values(dataset_id=version))
         conn.execute(
             insert(history).values(
@@ -222,7 +222,7 @@ def lookup_directory(
             "valid_from": version["valid_from"],
             "valid_until": version["valid_until"],
             "status": dataset_status(dict(version), on_date or today()),
-            "source": "Quelle: " + SOURCES[country].publisher,
+            "source": "Source: " + SOURCES[country].publisher,
             "source_url": version["source_url"],
             "imported_at": version["imported_at"],
         }
@@ -248,7 +248,7 @@ def lookup_directory(
 
 def list_directory_versions(engine: Engine, country: str) -> list[dict]:
     if country not in SOURCES:
-        raise ValueError("Unbekanntes Land.")
+        raise ValueError("Unknown country.")
     with engine.connect() as conn:
         current = conn.execute(
             select(active.c.dataset_id).where(active.c.country == country)

@@ -70,7 +70,7 @@ def test_download_failure_preserves_active_and_blocks_activation(engine, setup):
 
     with pytest.raises(OSError):
         u.auto_check(engine, directory, now=NOW, fetch=fail)
-    with pytest.raises(ValueError, match="gesperrt"):
+    with pytest.raises(ValueError, match="blocked"):
         u.auto_activate(engine, directory, now=NOW + timedelta(days=1))
     assert u.snapshot(engine)[0]["id"] == old
 
@@ -92,13 +92,13 @@ def test_large_change_requires_review(engine, setup):
 def test_stale_check_cannot_activate(engine, setup):
     directory, fetch, _, _ = setup
     u.auto_check(engine, directory, now=NOW, fetch=fetch)
-    with pytest.raises(ValueError, match="gesperrt"):
+    with pytest.raises(ValueError, match="blocked"):
         u.auto_activate(engine, directory, now=NOW + timedelta(days=3))
 
 
 def test_compare_and_swap(engine, setup):
     _, _, version, _ = setup
-    with pytest.raises(ValueError, match="inzwischen"):
+    with pytest.raises(ValueError, match="has changed"):
         activate(engine, version, on_date=START, expected_previous_id="wrong")
 
 

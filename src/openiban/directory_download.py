@@ -11,7 +11,7 @@ from openiban.directories import MAX_BYTES, SOURCES, parse_directory
 
 def validate_url(country: str, url: str) -> str:
     if country not in SOURCES:
-        raise ValueError("Unbekanntes Verzeichnisland.")
+        raise ValueError("Unknown directory country.")
     parsed = urlsplit(url)
     if (
         parsed.scheme != "https"
@@ -22,7 +22,7 @@ def validate_url(country: str, url: str) -> str:
         or parsed.fragment
         or len(url) > 1000
     ):
-        raise ValueError("Quellen-URL muss beim offiziellen HTTPS-Publisher liegen.")
+        raise ValueError("Source URL must use the official publisher's HTTPS host.")
     return url
 
 
@@ -44,14 +44,14 @@ def fetch(country: str, url: str) -> bytes:
         ) as response:
             length = response.headers.get("Content-Length")
             if length and int(length) > MAX_BYTES:
-                raise ValueError("Download größer als 20 MiB.")
+                raise ValueError("Download exceeds 20 MiB.")
             content = response.read(MAX_BYTES + 1)
     except (HTTPError, URLError, TimeoutError) as exc:
         raise ValueError(
-            "Offizielle Quelle nicht erreichbar; aktiver Bestand bleibt unverändert."
+            "Official source is unreachable; active dataset remains unchanged."
         ) from exc
     if not content or len(content) > MAX_BYTES:
-        raise ValueError("Download leer oder größer als 20 MiB.")
+        raise ValueError("Download is empty or exceeds 20 MiB.")
     return content
 
 
@@ -75,13 +75,15 @@ def discover_url(country: str, page: bytes) -> str:
         }
         links &= visible
     if len(links) != 1:
-        raise ValueError("Downloadlink fehlt/mehrdeutig; offizielle Quellen-URL explizit angeben.")
+        raise ValueError(
+            "Download link is missing or ambiguous; explicitly provide the official source URL."
+        )
     return links.pop()
 
 
 def download_directory(country: str, source_url: str | None = None) -> tuple[bytes, str]:
     if country not in SOURCES:
-        raise ValueError("Unbekanntes Land.")
+        raise ValueError("Unknown country.")
     source = SOURCES[country]
     url = source_url or source.download
     if url is None:

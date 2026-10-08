@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-[[ $EUID -eq 0 ]] || { echo 'Bitte mit sudo bash starten.'; exit 1; }
+[[ $EUID -eq 0 ]] || { echo 'Run using sudo bash.'; exit 1; }
 base=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 [[ -x /opt/openiban.eu/.venv/bin/openiban ]]
 install -d -m 0700 /etc/openiban /var/lib/openiban-notify

@@ -1,97 +1,98 @@
-# Europäische Bankverzeichnisse
+# European bank directories
 
-Stand der Quellenprüfung: 8. Oktober 2026. Dieser Entwicklungsstand wurde nicht
-auf den öffentlichen Dienst ausgerollt. Deutschland behält seinen bisherigen
-Importer und automatischen Updater. Acht zusätzliche Adapter sind enthalten;
-Griechenland ist **vorläufig**, weil der Originaldownload in der Entwicklungsumgebung
-HTTP 403 liefert. Sein XLSX-Header und eine vollständige reale Datei müssen vor
-Freigabe noch geprüft werden. Synthetische Tests ersetzen diese Prüfung nicht.
+Source review date: 8 October 2026. This implementation has not been deployed to
+the public service. Germany retains its existing importer and automatic updater.
+Eight additional adapters are included. Greece is **provisional** because the
+original download returns HTTP 403 in the development environment. Its XLSX
+header and a complete real file must still be verified before approval.
+Synthetic tests do not replace that verification.
 
-## Quellen, Formate und Kennungen
+## Sources, formats and identifiers
 
-Die Positionen sind einsbasiert und beziehen sich auf die normalisierte IBAN.
+Positions are one-based and refer to the normalized IBAN.
 
-| Land | Offizielle Quelle | Importformat | IBAN-Kennung | Aktualisierung / Ergebnis Originalprüfung |
+| Country | Official source | Import format | IBAN identifier | Updates / original-source verification |
 |---|---|---|---|---|
-| CH | [SIX Swiss Bank Master v3](https://www.six-group.com/de/products-services/banking-services/interbank-clearing/online-services/download-bank-master.html) | UTF-8 CSV, Semikolon | 5–9, fünfstellige IID/QR-IID | täglich; 1.164 Datensätze am 08.10.2026, davon 26 verkettete IIDs |
-| PL | [NBP EWIB 2.0](https://ewib.nbp.pl/faces/pages/faq.xhtml) | JSON, `listaWlascicieli` | 5–12, achtstellige Clearingkennung | bei Änderungen; vollständige API-Antwort mit 3.141 Clearingkennungen geprüft |
-| LT | [Bank of Lithuania](https://www.lb.lt/en/iban-and-financial-institution-codes) | englischer CSV-Export, Windows-1257, Semikolon | 5–9, fünfstelliger National ID | bei Änderungen; Export vom 05.05.2026 mit 229 Datensätzen geprüft |
-| BE | [National Bank of Belgium](https://www.nbb.be/en/payments-and-securities/bank-identification-codes) | vollständige XLSX-Liste | 5–7, dreistellige Kennung | bei Änderungen; Version 01.09.2026, 782 zugeordnete Kennungen, 218 freie/nicht verfügbare ausgeschlossen |
-| CZ | [Czech National Bank](https://www.cnb.cz/cs/platebni-styk/ucty-kody-bank/) | UTF-8 CSV mit BOM, Semikolon | 5–8, vierstelliger Zahlungssystemcode | bei Änderungen; Liste gültig ab 01.10.2026, 47 Datensätze geprüft |
-| LV | [Latvijas Banka](https://www.bank.lv/en/operational-areas/payment-systems/identification-of-bic-by-iban) | verlinkte englische XLS-Datei | 5–8, vier Buchstaben | bei Änderungen; 20 Datensätze geprüft |
-| SI | [Banka Slovenije](https://www.bsi.si/sl/placilni-sistemi/placilni-in-transakcijski-racun) | UTF-8 HTML-Tabelle | 5–9 exakt, sonst 5–6 als Bankpräfix | bei Änderungen; 18 Kennungen geprüft, einschließlich `rowspan` und fehlendem BIC |
-| GR | [Bank of Greece SEPA](https://www.bankofgreece.gr/en/main-tasks/payment-systems-and-settlements/sepa) | verlinkte XLSX-Datei | 5–7, dreistelliger Bank Identifier | **Originaldatei nicht geprüft**, Download HTTP 403; vorläufiger Headeradapter |
+| CH | [SIX Swiss Bank Master v3](https://www.six-group.com/de/products-services/banking-services/interbank-clearing/online-services/download-bank-master.html) | UTF-8 CSV, semicolon | 5–9, five-digit IID/QR-IID | Daily; 1,164 records on 8 October 2026, including 26 concatenated IIDs |
+| PL | [NBP EWIB 2.0](https://ewib.nbp.pl/faces/pages/faq.xhtml) | JSON, `listaWlascicieli` | 5–12, eight-digit clearing code | On changes; complete API response with 3,141 clearing codes verified |
+| LT | [Bank of Lithuania](https://www.lb.lt/en/iban-and-financial-institution-codes) | English CSV export, Windows-1257, semicolon | 5–9, five-digit National ID | On changes; export dated 5 May 2026 with 229 records verified |
+| BE | [National Bank of Belgium](https://www.nbb.be/en/payments-and-securities/bank-identification-codes) | Complete XLSX list | 5–7, three-digit code | On changes; version 1 September 2026, 782 assigned codes, 218 free/unavailable codes excluded |
+| CZ | [Czech National Bank](https://www.cnb.cz/cs/platebni-styk/ucty-kody-bank/) | UTF-8 CSV with BOM, semicolon | 5–8, four-digit payment system code | On changes; list valid from 1 October 2026, 47 records verified |
+| LV | [Latvijas Banka](https://www.bank.lv/en/operational-areas/payment-systems/identification-of-bic-by-iban) | Linked English XLS file | 5–8, four letters | On changes; 20 records verified |
+| SI | [Banka Slovenije](https://www.bsi.si/sl/placilni-sistemi/placilni-in-transakcijski-racun) | UTF-8 HTML table | Exact 5–9, otherwise 5–6 as bank prefix | On changes; 18 identifiers verified, including `rowspan` and missing BIC |
+| GR | [Bank of Greece SEPA](https://www.bankofgreece.gr/en/main-tasks/payment-systems-and-settlements/sepa) | Linked XLSX file | 5–7, three-digit Bank Identifier | **Original file not verified**, download HTTP 403; provisional header adapter |
 
-IBAN-Längen und BBAN-Formate folgen dem
+IBAN lengths and BBAN formats follow the
 [SWIFT IBAN Registry](https://www.swift.com/swift-resource/9606/download?language=en).
-Die Prüfung umfasst Format und MOD-97, keine nationalen Kontoprüfziffern.
-Die griechische Kontokomponente darf alphanumerisch sein, ebenso die schweizerische
-und lettische. Liechtenstein wird durch den CH-Adapter nicht automatisch unterstützt.
+Validation covers format and MOD-97, excluding domestic account checksum
+algorithms. Greek account components may be alphanumeric, as may Swiss and
+Latvian components. The CH adapter does not automatically support Liechtenstein.
 
-### Verarbeitung der Quellen
+### Source processing
 
-- **CH:** Die CSV enthält 21 Datenfelder und einen zusätzlichen Zeitstempel im Header.
-  IIDs werden auf fünf Stellen mit führenden Nullen dargestellt. Typ 4 ist eine
-  QR-IID im Bereich 30000–31999; deren eigene Zuordnung bleibt erhalten. Verkettete
-  Kennungen (`Concatenation=Y`) sind gelöscht und behalten die Nachfolgekennung als
-  Hinweis. IBANs werden nie auf eine Nachfolgekennung umgeschrieben. Der `Valid on`-Tag
-  muss für alle Zeilen übereinstimmen und darf nicht nach dem Importbeginn liegen.
-- **PL:** Vollständiger Download von
-  `https://ewib.nbp.pl/api/v1/zapytanie1/?format=json`, ohne Konto-/IBAN-Eingaben.
-  Hauptsitz und organisatorische Einheiten werden einschließlich ihrer Clearingcodes
-  verarbeitet. Der allgemeine `BIC` wird verwendet; `BIC SEPA`, TARGET- und SORBNET-BICs
-  werden nicht als Ersatz erfunden. Fehlende BICs bleiben `null`.
-- **LT:** Der englische Export enthält Bank- und Filialkennungen. Bankname, BIC,
-  Ort und Postleitzahl werden übernommen. Eine abschließende vollständig leere
-  gepolsterte Zeile ist erlaubt; interne Lücken oder unbekannte Spalten scheitern.
-- **BE:** Führende Nullen bleiben erhalten; getrennte BIC-Komponenten werden
-  zusammengefügt. `VRIJ` und `Onbeschikbaar` sind keine Banken. Die beobachteten
-  BIC-Platzhalter `N/A`, `NAV`, `nav`, `NYA` und `-` bedeuten fehlender BIC. Der
-  englische Name wird bevorzugt, sonst Niederländisch, Französisch, Deutsch.
-- **LV:** Die XLS-Datei liefert vollständige BICs. Die HTML-Seite teilt BICs über
-  Zellen auf und wird bewusst nicht als Datenformat verwendet. `X` im achten
-  BIC-Zeichen und `XXX` als Filialcode sind gültige Bestandteile, keine Platzhalter.
-- **SI:** Zwei- und fünfstellige Kennungen bleiben unterschiedlich. Lookup verwendet
-  zuerst die exakte fünfstellige Kennung, dann das zweistellige Bankpräfix. Damit
-  werden Zahlungsinstitute mit eigener fünfstelliger Kennung korrekt getrennt.
-  Zusammengefasste Namens-/Adresszellen werden über `rowspan` aufgelöst.
-- **GR:** Vorläufige XLSX-Erkennung über eindeutige Spalten `Bank`/`Bank Name`/`Name`/`PSP`,
-  `BIC`/`BIC Code` und `Bank Identifier`/`Bank Identifiers`. Ein unbekannter Header
-  scheitert statt Daten zu raten. Mit einer realen Originaldatei prüfen und ggf.
-  den Adapter samt Regressionstest anpassen, bevor er freigegeben wird.
+- **CH:** The CSV contains 21 data fields and an additional timestamp in the
+  header. IIDs are padded to five digits with leading zeros. Type 4 is a QR-IID
+  in the range 30000–31999; its own mapping is retained. Concatenated identifiers
+  (`Concatenation=Y`) are deleted and retain the successor identifier as a hint.
+  IBANs are never rewritten to successor codes. `Valid on` must be identical
+  across rows and must not follow the import validity start date.
+- **PL:** Complete download from
+  `https://ewib.nbp.pl/api/v1/zapytanie1/?format=json`, without account/IBAN input.
+  Head offices and organizational units are processed with their clearing codes.
+  The general `BIC` is used; `BIC SEPA`, TARGET and SORBNET BICs are not substituted.
+  Missing BICs remain `null`.
+- **LT:** The English export contains bank and branch identifiers. Bank names,
+  BICs, cities and postal codes are retained. A final entirely empty padded row
+  is allowed; internal gaps or unknown columns fail validation.
+- **BE:** Leading zeros are preserved; separate BIC components are joined.
+  `VRIJ` and `Onbeschikbaar` are not banks. Observed BIC placeholders `N/A`,
+  `NAV`, `nav`, `NYA` and `-` indicate a missing BIC. English names are preferred,
+  followed by Dutch, French and German.
+- **LV:** The XLS file provides complete BICs. The HTML page splits BICs across
+  cells and is deliberately not used as the data format. `X` at BIC position
+  eight and `XXX` as a branch code are valid components, not placeholders.
+- **SI:** Two-digit and five-digit identifiers remain distinct. Lookup first
+  uses the exact five-digit identifier, then the two-digit bank prefix. This
+  distinguishes payment institutions with their own five-digit identifiers.
+  Merged name/address cells are resolved through `rowspan`.
+- **GR:** Provisional XLSX detection uses unambiguous columns
+  `Bank`/`Bank Name`/`Name`/`PSP`, `BIC`/`BIC Code`, and
+  `Bank Identifier`/`Bank Identifiers`. Unknown headers fail rather than guessing
+  data. Verify against a real original file and adjust the adapter and regression
+  test if needed before approval.
 
-## Nutzungsbedingungen und Freigabestatus
+## Terms of use and approval status
 
-Der MIT-lizenzierte Programmcode verleiht keine Rechte an den Quelldaten. Es
-werden keine Originalverzeichnisse ins Repository kopiert oder neu lizenziert.
-Die Tests enthalten synthetische Namen/Kennungen, einschließlich einer synthetischen
-XLS-Datei. Bankdaten werden lokal abgefragt; keine eingegebene IBAN wird an eine
-Datenquelle übertragen. Jede API-Antwort mit Bestand nennt Publisher und Quellen-URL.
+The MIT-licensed code grants no rights to source data. Original directories are
+neither copied into the repository nor relicensed. Tests contain synthetic
+names/identifiers, including a synthetic XLS file. Bank lookup runs locally;
+submitted IBANs are never transmitted to a data source. Every API response with
+a dataset identifies its publisher and source URL.
 
-| Land | Geprüfte Grundlage | Konsequenz / offener Punkt |
+| Country | Reviewed basis | Consequence / outstanding question |
 |---|---|---|
-| CH | [Spezifische Swiss Bank Master v3 Dateibeschreibung, S. 1](https://www.six-group.com/dam/download/banking-services/interbank-clearing/bc-bank-master/bankmaster-v3.0-record-description-en.pdf) erlaubt freie Verwendung der Informationen; BIC-Eigentum SWIFT und Haftungsausschluss werden genannt. [Allgemeine SIX-Websitebedingungen](https://www.six-group.com/en/services/legal/terms-and-conditions/terms-of-use.html) sind enger. | Die spezifische Downloadregel bildet die Arbeitsgrundlage; Quelle nennen, keine zusätzlichen Rechte behaupten. |
-| PL | [EWIB FAQ](https://ewib.nbp.pl/faces/pages/faq.xhtml) dokumentiert öffentliche API ohne Authentifizierung und vollständige Listenabfragen. | Das bestätigt technischen Zugang, keine ausdrückliche Weiterverbreitungslizenz. Anwendbare Nutzungsrechte vor öffentlicher Aktivierung gesondert klären und dokumentieren. |
-| LT | [Terms of use](https://www.lb.lt/en/terms-of-use) verlangt Quellenangabe und ggf. Autorennennung. | Bank of Lithuania als Quelle; keine eigenständige Open-Data-Lizenz behaupten. |
-| BE | [Copyright and use of information](https://www.nbb.be/en/disclaimer-and-legal-information/copyright-and-use-information) erlaubt Verwendung, Verteilung und Reproduktion bei Integrität, Genauigkeit und Quellenangabe. | Bei kostenpflichtiger Weitergabe Hinweis auf kostenlose Verfügbarkeit bei NBB; Sonderbedingungen einzelner Inhalte beachten. |
-| CZ | [CNB Websitebedingungen](https://www.cnb.cz/en/privacy-statement-and-disclaimer/disclaimer-copyright/) erlaubt Speicherung, Verbreitung und Reproduktion eigener Informationen mit Quellenangabe; Inhalt nicht verfälschen. | Technische Normalisierung, unveränderter Informationsgehalt; keine redaktionellen Korrekturen. |
-| LV | [Use of data](https://www.bank.lv/en/statistics/information-for-data-users/use-of-data) erlaubt statistische Wiederverwendung mit Quellenangabe und unveränderten Daten, ggf. Kostenlosigkeitshinweis. | Diese Regel betrifft Statistik. Ihre Geltung für das Zahlungsverkehrsverzeichnis ist nicht bestätigt; vor öffentlicher Aktivierung klären. |
-| SI | [Pogoji uporabe](https://www.bsi.si/sl/pogoji-uporabe) erlaubt Speicherung, Reproduktion und Verteilung mit Quellenangabe und unveränderten Daten; besondere Vorgaben für Werbung und kostenpflichtige Inhalte. | Nichtkommerzieller Dienst mit Quellenangabe; kommerzielle/werbliche Nutzung erfordert gesonderte Prüfung. |
-| GR | [Terms of use](https://www.bankofgreece.gr/en/useful-links/terms-of-use) war hier nicht abrufbar. | Nutzung und Originalschema noch nicht abschließend geprüft. Eine CC-BY-Regel des separaten Open-Data-Portals wird nicht auf diese Datei übertragen. |
+| CH | [Specific Swiss Bank Master v3 record description, p. 1](https://www.six-group.com/dam/download/banking-services/interbank-clearing/bc-bank-master/bankmaster-v3.0-record-description-en.pdf) permits free use of the information; it identifies SWIFT ownership of BICs and disclaims liability. [General SIX website terms](https://www.six-group.com/en/services/legal/terms-and-conditions/terms-of-use.html) are narrower. | The specific download rule is the working basis; cite the source and claim no additional rights. |
+| PL | [EWIB FAQ](https://ewib.nbp.pl/faces/pages/faq.xhtml) documents a public API without authentication and complete-list queries. | This confirms technical access, not an explicit redistribution license. Clarify and document applicable usage rights before public activation. |
+| LT | [Terms of use](https://www.lb.lt/en/terms-of-use) require source attribution and author attribution where applicable. | Attribute Bank of Lithuania; do not claim a separate open-data license. |
+| BE | [Copyright and use of information](https://www.nbb.be/en/disclaimer-and-legal-information/copyright-and-use-information) permits use, distribution and reproduction subject to integrity, accuracy and attribution. | Paid redistribution requires notice that the information is freely available from NBB; observe any content-specific terms. |
+| CZ | [CNB website terms](https://www.cnb.cz/en/privacy-statement-and-disclaimer/disclaimer-copyright/) permit storage, distribution and reproduction of its own information with attribution; information must not be distorted. | Technical normalization with unchanged information; no editorial corrections. |
+| LV | [Use of data](https://www.bank.lv/en/statistics/information-for-data-users/use-of-data) permits statistical reuse with attribution and unchanged data, with a free-availability notice where applicable. | This rule covers statistics. Its applicability to the payment directory is unconfirmed; clarify before public activation. |
+| SI | [Terms of use](https://www.bsi.si/sl/pogoji-uporabe) permit storage, reproduction and distribution with attribution and unchanged data; special rules apply to advertising and paid content. | Non-commercial service with attribution; commercial/advertising use requires separate review. |
+| GR | [Terms of use](https://www.bankofgreece.gr/en/useful-links/terms-of-use) could not be retrieved here. | Usage and the original schema are not fully verified. A CC-BY rule from the separate open-data portal is not applied to this file. |
 
-Dies ist eine dokumentierte technische Quellenprüfung, keine Rechtsfreigabe.
-`activate-directory` verlangt eine protokollierte Prüfanmerkung. Für PL, LV und
-GR muss diese insbesondere die bislang offenen Nutzungsfragen abdecken. Für GR
-muss zusätzlich eine erfolgreiche Prüfung mit einem Originalverzeichnis vorliegen.
-Ein erfolgreicher Parserlauf oder eine beliebige Prüfanmerkung beweist keine Lizenz.
+This is a documented technical source review, not legal approval.
+`activate-directory` requires a recorded review note. For PL, LV and GR, that
+review must specifically address the outstanding usage questions. GR additionally
+requires successful verification against an original directory. A successful
+parser run or an arbitrary review note does not establish a license.
 
-## Maintainer-Ablauf
+## Maintainer workflow
 
-Vor dem ersten Start dieser Version: Datenbank sichern, danach `openiban init-db`
-ausführen. Die neuen Tabellen `directory_versions`, `directory_banks`,
-`directory_active` und `directory_activations` werden zusätzlich angelegt.
-Bestehende deutsche Tabellen/Zeiger bleiben erhalten. Dies ist kein allgemeines
-Migrationssystem; PostgreSQL bleibt ohne Integrationstest nicht freigegeben.
+Before first starting this version, back up the database, then run
+`openiban init-db`. The additional tables `directory_versions`, `directory_banks`,
+`directory_active` and `directory_activations` are created. Existing German
+tables/pointers are retained. This is not a general migration system;
+PostgreSQL remains unapproved without integration tests.
 
 ```bash
 openiban init-db
@@ -102,65 +103,66 @@ openiban import-directory CZ data/cz.csv \
 openiban directory-versions CZ
 ```
 
-Die Daten im Beispiel sind eine vom Maintainer gewählte Prüfungsspanne, keine vom
-Publisher zugesicherte Laufzeit. Vor jedem Import **Quellstand und angemessenes
-Frischeende** bestimmen. SIX `Valid on` und NBB `Version` werden zusätzlich mit dem
-Beginn abgeglichen; übrige Quellen brauchen Angaben des Maintainers.
+The dates in this example are a maintainer-selected review interval, not a
+publisher-guaranteed lifetime. Before every import, **determine the source date
+and an appropriate freshness end date**. SIX `Valid on` and NBB `Version` are also
+checked against the start date; other sources require maintainer-supplied dates.
 
-LT und LV: `fetch-directory` entdeckt den aktuellen englischen Downloadlink auf
-der offiziellen Seite. Mehrdeutige oder fehlende Links werden nicht geraten.
-Mit `--source-url` kann ein manuell geprüfter aktueller Link angegeben werden.
-Die LT-Downloadseite liefert in dieser Umgebung HTTP 403, während der explizite
-aktuelle CSV-Link funktioniert. LV-Linkentdeckung wurde erfolgreich live geprüft.
-WAF-/HTTP-Fehler können einen manuellen Download im Browser erfordern. Offlineimporte
-benötigen die tatsächliche offizielle `--source-url`; deren Domainprüfung ist kein
-Herkunftsnachweis der lokalen Datei. SHA-256 dient zur Wiedererkennung, nicht als Signatur.
+LT and LV: `fetch-directory` discovers the current English download link on the
+official page. Ambiguous or missing links are not guessed. `--source-url` can
+specify a manually verified current link. The LT download page returns HTTP 403
+in this environment, while the explicit current CSV link works. LV link discovery
+was successfully verified live. WAF/HTTP errors may require a manual browser
+download. Offline imports require the actual official `--source-url`; domain
+validation does not prove the local file's origin. SHA-256 identifies repeated
+files; it is not a signature.
 
-Download prüft das native Format und schreibt keine vorhandene Datei über.
-Redirects bleiben bei den konfigurierten offiziellen HTTPS-Hosts; Downloads haben
-30 Sekunden Socket-Timeout und maximal 20 MiB. XLSX-Dekompression ist auf 100 MiB
-begrenzt; XML-Entitäten, Formeln und Fehlerzellen werden nicht akzeptiert.
-Bekannte Tabellenstruktur, Kennungsformat, BIC-Syntax und eindeutige Kennungen
-werden geprüft. Ein Parsingfehler schreibt keine Version und aktiviert nichts.
+Download validates the native format and does not overwrite existing files.
+Redirects stay on configured official HTTPS hosts. Downloads have a 30-second
+socket timeout and a 20 MiB size limit. XLSX decompression is limited to 100 MiB;
+XML entities, formulas and error cells are rejected. Known table structures,
+identifier formats, BIC syntax and identifier uniqueness are checked. Parsing
+failure writes no version and activates nothing.
 
-Importausgabe (`added`, `removed`, `changed`, `ignored_rows`, `comparison_version`)
-mit dem bisherigen und dem offiziellen Gesamtbestand vergleichen. Große Abnahmen,
-fehlerhafte Quellstände und unerwartete Änderungen vor Aktivierung untersuchen.
-Diese Länder haben **keine automatische Aktivierung und keine neuen systemd-Timer**.
+Compare import output (`added`, `removed`, `changed`, `ignored_rows`,
+`comparison_version`) with the previous and official complete datasets.
+Investigate large decreases, incorrect source dates and unexpected changes
+before activation. These countries have **no automatic activation and no new
+systemd timers**.
 
-Nach fachlicher Prüfung, Test und Klärung der Nutzungsbedingungen:
+After data review, testing and clarification of usage terms:
 
 ```bash
-openiban activate-directory CZ HIER-DIE-VERSION-EINSETZEN \
-  --review-note 'Originalstand, Datensatzanzahl, Stichproben und CNB-Nutzungsbedingungen geprüft'
+openiban activate-directory CZ REPLACE-WITH-VERSION \
+  --review-note 'Original source date, record count, samples and CNB terms of use reviewed'
 ```
 
-Aktivierung erfolgt transaktional je Land und wird mit Prüfanmerkung protokolliert.
-Rollback verwendet den gleichen Befehl mit einer früheren Version. Abgelaufene
-Versionen erfordern `--allow-expired`; Lookup liefert dann `stale` und keine Bankdaten.
-Künftige Versionen lassen sich nicht vor ihrem Gültigkeitsbeginn aktivieren.
-Identische Dateien sind pro Land idempotent; abweichende Zeiträume/Quellen-URLs
-werden abgelehnt. Die deutsche automatische Aktualisierung bleibt unverändert.
+Activation is transactional per country and logged with the review note.
+Rollback uses the same command with an earlier version. Expired versions require
+`--allow-expired`; lookup then returns `stale` without bank data. Future versions
+cannot be activated before their validity start date. Identical files are
+idempotent per country; conflicting periods/source URLs are rejected.
+German automatic updates remain unchanged.
 
-## API und Betrieb
+## API and operations
 
-`GET /v1/countries` nennt die neun unterstützten IBAN-Formate. Das Feld
-`bank_lookup_supported` bedeutet vorhandene Lookup-Implementierung, nicht aktuell
-importierte Bankdaten oder endgültige Quellenfreigabe. Ohne aktivierte aktuelle
-Landesversion meldet Lookup `unavailable` bzw. `stale`. Deutsche Bereitschaftsprüfung
-`/health/ready` bleibt ein DE-Gesundheitsindikator; sie bestätigt nicht alle Länder.
-Ein unbekannter Bankcode ist von einer fehlerhaften IBAN-Prüfsumme unabhängig.
-`postal_code`/`city` bleiben leer, wenn die Quelle sie nicht als separate Felder liefert.
+`GET /v1/countries` lists the nine supported IBAN formats. The field
+`bank_lookup_supported` indicates an available lookup implementation, not
+currently imported bank data or final source approval. Without an activated
+current country version, lookup reports `unavailable` or `stale`.
+`/health/ready` remains a German readiness indicator; it does not confirm all
+countries. An unknown bank code is independent of an invalid IBAN checksum.
+`postal_code`/`city` remain empty when the source does not provide separate fields.
 
-Tests: `ruff check .`, `ruff format --check .`, `pytest -q` mit dem aktualisierten
-`requirements-dev.lock`. Alle regulären Tests laufen offline. Abgedeckt werden
-native Formate, führende Nullen, polnische Einheiten, slowenische Kennungen/Rowspans,
-fehlende BICs, reservierte Codes, Schweizer Verkettung/QR-IIDs, beschädigte Dateien,
-Größenlimits, Provenienz, Schemaerweiterung, Ländertrennung, CLI, Aktivierung,
-Rollback, MOD-97 und API-Lookup. GR ist dabei nur synthetisch geprüft.
+Tests: `ruff check .`, `ruff format --check .`, `pytest -q` with the updated
+`requirements-dev.lock`. All regular tests run offline. Coverage includes native
+formats, leading zeros, Polish units, Slovenian identifiers/rowspans, missing
+BICs, reserved codes, Swiss concatenation/QR-IIDs, damaged files, size limits,
+provenance, schema extension, country isolation, CLI, activation, rollback,
+MOD-97 and API lookup. GR is covered only by synthetic tests.
 
-Die sieben erreichbaren Originalquellen wurden am 08.10.2026 separat heruntergeladen
-und durch die Adapter verarbeitet. Die Originaldateien liegen außerhalb des Repos.
-Ein Live-Test ist bewusst kein CI-Test: Quellen/WAFs dürfen die Offline-Suite nicht
-beeinflussen. Vor Merge/Release bleibt die Originalprüfung von GR offen; vor einer
-öffentlichen Aktivierung bleiben zusätzlich die oben genannten Nutzungsfragen offen.
+The seven reachable original sources were downloaded separately on 8 October
+2026 and processed by the adapters. Original files reside outside the repository.
+Live verification is deliberately separate from CI: sources/WAFs must not affect
+the offline suite. Original-source verification for GR remains outstanding before
+merge/release; the usage questions above also remain outstanding before public activation.

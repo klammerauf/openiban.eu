@@ -7,7 +7,7 @@ SOURCE_URL = (
     "https://www.bundesbank.de/de/aufgaben/unbarer-zahlungsverkehr/"
     "serviceangebot/bankleitzahlen/download-bankleitzahlen-602592"
 )
-ATTRIBUTION = "Quelle: Deutsche Bundesbank"
+ATTRIBUTION = "Source: Deutsche Bundesbank"
 MAX_FILE_BYTES = 20 * 1024 * 1024
 
 
@@ -33,7 +33,7 @@ class ParsedFile:
 
 def parse_txt(content: bytes) -> ParsedFile:
     if not content or len(content) > MAX_FILE_BYTES:
-        raise ValueError("Datei ist leer oder größer als 20 MiB.")
+        raise ValueError("File is empty or exceeds 20 MiB.")
     records = []
     seen_ids: set[str] = set()
     seen_codes: set[str] = set()
@@ -46,10 +46,10 @@ def parse_txt(content: bytes) -> ParsedFile:
     for number, raw in enumerate(lines, start=1):
         raw = raw.removesuffix(b"\r")
         if len(raw) != 168:
-            raise ValueError(f"Zeile {number}: erwartet werden genau 168 Bytes (öffentliche TXT).")
+            raise ValueError(f"Row {number}: exactly 168 bytes required (public TXT).")
         line = raw.decode("latin-1")
         if any(ord(char) < 32 or 127 <= ord(char) < 160 for char in line):
-            raise ValueError(f"Zeile {number}: unerlaubtes Steuerzeichen/Encoding.")
+            raise ValueError(f"Row {number}: invalid control character or encoding.")
         code, leader = line[:8], line[8]
         record_id, flag = line[152:158], line[158]
         successor = line[160:168]
@@ -69,15 +69,15 @@ def parse_txt(content: bytes) -> ParsedFile:
                 and not re.fullmatch(r"[A-Z0-9]{4}[A-Z]{2}[A-Z0-9]{2}([A-Z0-9]{3})?", bic)
             )
         ):
-            raise ValueError(f"Zeile {number}: ungültige Felder im Bundesbank-Datensatz.")
+            raise ValueError(f"Row {number}: invalid fields in Bundesbank record.")
         if record_id in seen_ids:
-            raise ValueError(f"Zeile {number}: doppelte Datensatznummer.")
+            raise ValueError(f"Row {number}: duplicate record number.")
         seen_ids.add(record_id)
         if leader == "2":
             branch_rows += 1
             continue
         if code in seen_codes:
-            raise ValueError(f"Zeile {number}: doppelte bankleitzahlführende BLZ.")
+            raise ValueError(f"Row {number}: duplicate bank-code-owning BLZ.")
         seen_codes.add(code)
         records.append(
             BankRecord(
@@ -93,5 +93,5 @@ def parse_txt(content: bytes) -> ParsedFile:
             )
         )
     if not records or not any(record.change_flag != "D" for record in records):
-        raise ValueError("Datei enthält keine aktiven bankleitzahlführenden Datensätze.")
+        raise ValueError("File contains no active bank-code-owning records.")
     return ParsedFile(records, len(lines), branch_rows)
