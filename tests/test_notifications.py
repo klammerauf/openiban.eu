@@ -14,7 +14,7 @@ def test_warning_dedup_reminder_and_recovery(tmp_path, monkeypatch):
     monkeypatch.setattr(notify, "STATE", tmp_path / "state.json")
     clock = [100000]
     monkeypatch.setattr(notify.time, "time", lambda: clock[0])
-    issues = ["Fehler"]
+    issues = ["Error"]
     monkeypatch.setattr(notify, "problems", lambda: issues.copy())
     sent = []
     monkeypatch.setattr(notify, "send", lambda *args: sent.append(args))
@@ -28,12 +28,12 @@ def test_warning_dedup_reminder_and_recovery(tmp_path, monkeypatch):
     notify.check({})
     notify.check({})
     assert len(sent) == 3
-    assert sent[-1][1] == "Entwarnung"
+    assert sent[-1][1] == "Recovery"
 
 
 def test_failed_send_retried(tmp_path, monkeypatch):
     monkeypatch.setattr(notify, "STATE", tmp_path / "state.json")
-    monkeypatch.setattr(notify, "problems", lambda: ["Fehler"])
+    monkeypatch.setattr(notify, "problems", lambda: ["Error"])
 
     def fail(*args):
         raise OSError("offline")

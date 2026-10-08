@@ -48,9 +48,7 @@ def allowed_url(url: str) -> str:
         or parsed.port not in {None, 443}
         or len(url) > 1000
     ):
-        raise ValueError(
-            "Download/Weiterleitung außerhalb der erlaubten Bundesbank-HTTPS-Adressen."
-        )
+        raise ValueError("Download or redirect outside allowed Bundesbank HTTPS addresses.")
     return url
 
 
@@ -72,15 +70,15 @@ def download_bytes(url: str, limit: int) -> bytes:
     with build_opener(SafeRedirect()).open(request, timeout=20) as response:
         allowed_url(response.geturl())
         if response.status != 200:
-            raise ValueError("Unerwarteter HTTP-Status beim Bundesbank-Download.")
+            raise ValueError("Unexpected HTTP status during Bundesbank download.")
         content = bytearray()
         while True:
             block = response.read(min(65536, limit + 1 - len(content)))
             content.extend(block)
             if len(content) > limit:
-                raise ValueError("Bundesbank-Download überschreitet die erlaubte Dateigröße.")
+                raise ValueError("Bundesbank download exceeds the allowed file size.")
             if time.monotonic() > deadline:
-                raise TimeoutError("Zeitlimit für Bundesbank-Download überschritten.")
+                raise TimeoutError("Bundesbank download time limit exceeded.")
             if not block:
                 return bytes(content)
 
@@ -114,14 +112,14 @@ def quarter_start(year: int, month: int) -> date:
 
 def validate_period(start: date, end: date) -> None:
     if start.month not in {3, 6, 9, 12} or start != quarter_start(start.year, start.month):
-        raise ValueError("Unbekannter Gültigkeitsbeginn; manuelle Prüfung erforderlich.")
+        raise ValueError("Unknown validity start date; manual review required.")
     next_start = (
         quarter_start(start.year + 1, 3)
         if start.month == 12
         else quarter_start(start.year, start.month + 3)
     )
     if end != next_start - timedelta(days=1):
-        raise ValueError("Unbekanntes Gültigkeitsende; manuelle Prüfung erforderlich.")
+        raise ValueError("Unknown validity end date; manual review required.")
 
 
 def discover(html: str, on_date: date) -> list[Download]:
@@ -135,30 +133,30 @@ def discover(html: str, on_date: date) -> list[Download]:
             continue
         url = allowed_url(urljoin(SOURCE_URL, href))
         if not urlsplit(url).path.startswith("/resource/blob/"):
-            raise ValueError("Unbekannter TXT-Downloadpfad.")
+            raise ValueError("Unknown TXT download path.")
         matches = re.findall(
             r"gültig vom\s+(\d{2}\.\d{2}\.\d{4})\s+bis\s+(\d{2}\.\d{2}\.\d{4})", label, re.I
         )
         if len(matches) != 1:
-            raise ValueError("TXT-Link ohne eindeutigen Gültigkeitszeitraum.")
+            raise ValueError("TXT link without an unambiguous validity period.")
         start, end = (datetime.strptime(value, "%d.%m.%Y").date() for value in matches[0])
         validate_period(start, end)
         if end < on_date:
             continue
         if start > on_date + timedelta(days=120):
-            raise ValueError("Download ist ungewöhnlich weit in der Zukunft datiert.")
+            raise ValueError("Download is dated unusually far in the future.")
         item = Download(url, start, end)
         if url in found and found[url] != item:
-            raise ValueError("Derselbe Downloadlink hat widersprüchliche Gültigkeitsdaten.")
+            raise ValueError("The same download link has conflicting validity dates.")
         if (start, end) in periods and periods[start, end] != url:
-            raise ValueError("Mehrere TXT-Links für denselben Zeitraum; manuelle Prüfung nötig.")
+            raise ValueError("Multiple TXT links for the same period; manual review required.")
         found[url] = item
         periods[start, end] = url
     if not found or len(found) > 2:
-        raise ValueError("Erwartet werden ein oder zwei aktuelle/künftige TXT-Downloads.")
+        raise ValueError("Expected one or two current or future TXT downloads.")
     result = sorted(found.values(), key=lambda item: item.valid_from)
     if len(result) == 2 and result[0].valid_until + timedelta(days=1) != result[1].valid_from:
-        raise ValueError("Lücke zwischen angebotenen Gültigkeitszeiträumen.")
+        raise ValueError("Gap between available validity periods.")
     return result
 
 
@@ -171,7 +169,7 @@ def locked(directory: Path):
         try:
             fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError as exc:
-            raise ValueError("Ein anderer Updater-Lauf ist noch aktiv.") from exc
+            raise ValueError("Another updater run is still active.") from exc
         try:
             yield
         finally:
@@ -184,7 +182,7 @@ def read_state(directory: Path) -> dict:
         return {"schema": 1, "candidates": [], "quarantine": {}}
     state = json.loads(path.read_text())
     if state.get("schema") != 1 or not isinstance(state.get("candidates"), list):
-        raise ValueError("Unbekanntes oder beschädigtes Updater-Statusformat.")
+        raise ValueError("Unknown or damaged updater status format.")
     return state
 
 
@@ -237,19 +235,19 @@ def quality(old: dict, new: dict, old_total: int, new_total: int) -> tuple[dict,
     }
     reasons = []
     if len(new) < MIN_ACTIVE_BANKS:
-        reasons.append(f"Weniger als {MIN_ACTIVE_BANKS} aktive Banken.")
+        reasons.append(f"Fewer than {MIN_ACTIVE_BANKS} active banks.")
     if old_total and not 0.8 <= new_total / old_total <= 1.25:
-        reasons.append("Gesamtzahl der Zeilen weicht um mehr als -20/+25 Prozent ab.")
+        reasons.append("Total row count differs by more than -20/+25 percent.")
     if not old:
-        reasons.append("Kein aktiver Vergleichsbestand vorhanden.")
+        reasons.append("No active reference dataset available.")
     else:
         for metric in ("added", "removed", "changed"):
             if counts[metric] / len(old) > MAX_CHANGE_FRACTION:
-                reasons.append(f"{metric}: mehr als 10 Prozent des aktiven Bestands betroffen.")
+                reasons.append(f"{metric}: more than 10 percent of the active dataset affected.")
         old_missing = sum(not record["bic"] for record in old.values())
         new_missing = sum(not record["bic"] for record in new.values())
         if new_missing > old_missing + max(10, int(len(old) * 0.05)):
-            reasons.append("Ungewöhnlich viele zusätzliche Datensätze ohne BIC.")
+            reasons.append("Unusually many additional records without a BIC.")
     return counts, reasons
 
 
@@ -257,17 +255,17 @@ def health_warnings(engine, state: dict, now: datetime) -> list[str]:
     on_date = now.astimezone(BERLIN).date()
     warnings = []
     if state.get("last_check_error"):
-        warnings.append("Letzter Abruf fehlgeschlagen: " + state["last_check_error"])
+        warnings.append("Last download failed: " + state["last_check_error"])
     checked = state.get("last_successful_check")
     if not checked or not timedelta(0) <= now - datetime.fromisoformat(checked) <= MAX_CHECK_AGE:
-        warnings.append("Kein erfolgreicher Abruf innerhalb der letzten 48 Stunden.")
+        warnings.append("No successful download within the last 48 hours.")
     if any(item["status"] == "needs_review" for item in state["candidates"]):
-        warnings.append("Mindestens eine angebotene Datenversion benötigt manuelle Prüfung.")
+        warnings.append("At least one available dataset version requires manual review.")
     current, _ = snapshot(engine)
     if current is None:
-        warnings.append("Kein aktiver Bankdatenbestand.")
+        warnings.append("No active bank dataset.")
     elif current["valid_until"] < on_date:
-        warnings.append("Aktiver Bankdatenbestand ist abgelaufen.")
+        warnings.append("Active bank dataset has expired.")
     elif current["valid_until"] - on_date <= timedelta(days=14):
         successor_ready = any(
             item["status"] == "approved"
@@ -275,9 +273,7 @@ def health_warnings(engine, state: dict, now: datetime) -> list[str]:
             for item in state["candidates"]
         )
         if not successor_ready:
-            warnings.append(
-                "Aktiver Bestand läuft innerhalb von 14 Tagen ab; kein geprüfter Nachfolger."
-            )
+            warnings.append("Active dataset expires within 14 days; no reviewed successor.")
     return warnings
 
 
@@ -294,9 +290,7 @@ def auto_check(
             downloads = discover(html, on_date)
             current, current_banks = snapshot(engine)
             if current is None:
-                raise ValueError(
-                    "Zuerst einen initialen Bestand manuell importieren und aktivieren."
-                )
+                raise ValueError("Manually import and activate an initial dataset first.")
             candidates = []
             for item in downloads:
                 data = fetch(item.url, MAX_FILE_BYTES)
@@ -310,7 +304,7 @@ def auto_check(
                     temporary.replace(archive)
                 # Always stage the bytes just downloaded, never trust a modified cache file.
                 if hashlib.sha256(archive.read_bytes()).hexdigest() != digest:
-                    raise ValueError("Lokale Downloadkopie hat eine abweichende Prüfsumme.")
+                    raise ValueError("Local download copy has a different checksum.")
                 result = stage_file(engine, archive, item.valid_from, item.valid_until, item.url)
                 version_id = result["version"]
                 _, new_banks = snapshot(engine, version_id)
@@ -321,12 +315,10 @@ def auto_check(
                     status, reasons = "current", []
                 elif item.valid_from <= current["valid_from"]:
                     status = "needs_review"
-                    reasons.append("Älterer oder abweichender Bestand für denselben Zeitraum.")
+                    reasons.append("Older or different dataset for the same period.")
                 else:
                     if digest in state["quarantine"]:
-                        reasons.append(
-                            "Diese Datei wurde bereits zur manuellen Prüfung zurückgestellt."
-                        )
+                        reasons.append("This file was already held for manual review.")
                     status = "needs_review" if reasons else "approved"
                 if status == "needs_review":
                     state["quarantine"][digest] = reasons
@@ -366,12 +358,10 @@ def auto_activate(engine, directory: Path, *, now: datetime | None = None) -> di
             or not checked
             or not timedelta(0) <= now - datetime.fromisoformat(checked) <= MAX_CHECK_AGE
         ):
-            raise ValueError(
-                "Aktivierung gesperrt: zuerst einen erfolgreichen aktuellen Abruf ausführen."
-            )
+            raise ValueError("Activation blocked: perform a successful recent download first.")
         current, current_banks = snapshot(engine)
         if current is None:
-            raise ValueError("Kein aktiver Vergleichsbestand.")
+            raise ValueError("No active reference dataset.")
         with engine.connect() as conn:
             previously_activated = set(conn.execute(select(activations.c.dataset_id)).scalars())
         eligible = [
@@ -394,9 +384,7 @@ def auto_activate(engine, directory: Path, *, now: datetime | None = None) -> di
                 or version["valid_from"].isoformat() != item["valid_from"]
                 or version["valid_until"].isoformat() != item["valid_until"]
             ):
-                raise ValueError(
-                    "Vergleichsbestand oder Kandidat geändert: erneuter Abruf erforderlich."
-                )
+                raise ValueError("Reference dataset or candidate changed: download again.")
             _, reasons = quality(
                 current_banks, records, current["total_rows"], version["total_rows"]
             )
@@ -405,7 +393,7 @@ def auto_activate(engine, directory: Path, *, now: datetime | None = None) -> di
                 item["reasons"] = reasons
                 state["quarantine"][item["sha256"]] = reasons
                 save_state(directory, state)
-                raise ValueError("Erneute Qualitätsprüfung fehlgeschlagen: " + "; ".join(reasons))
+                raise ValueError("Repeated quality check failed: " + "; ".join(reasons))
             activate(engine, item["version"], on_date=on_date, expected_previous_id=current["id"])
             item["status"] = "current"
             state["last_activation"] = {

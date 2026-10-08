@@ -1,45 +1,44 @@
-# Automatische Aktualisierung – Version 0.2.0
+# Automatic updates – version 0.2.0
 
-Für die bestehende Installation unter `/opt/openiban.eu` mit Benutzer `openiban`,
-SQLite unter `/var/lib/openiban/openiban.db` und `openiban-backup.service`.
+For the existing installation at `/opt/openiban.eu`, user `openiban`, SQLite at
+`/var/lib/openiban/openiban.db` and `openiban-backup.service`.
 
-ZIP im Home-Verzeichnis entpacken und ausführen:
+Extract the ZIP in your home directory and run:
 
 ```bash
 unzip -q ~/OpenIBAN-API-v0.2.0.zip -d ~/openiban-update-v0.2.0
 sudo bash ~/openiban-update-v0.2.0/openiban.eu/deployment/auto-update/install.sh
 ```
 
-Das Skript erstellt eine Datenbanksicherung über den vorhandenen Backupdienst und
-sichert die Python-Umgebung unter `/var/backups/openiban-update/<Zeitstempel>/venv`.
-Es installiert das enthaltene Wheel ohne neue Abhängigkeiten, startet die API kurz
-neu, prüft deren Erreichbarkeit und richtet die Timer ein. Nginx bleibt unverändert.
-Der entpackte Ordner enthält den zugehörigen vollständigen Sourcecode. Der installierte
-Python-Code liegt im bestehenden venv; die ältere Sourcekopie unter `/opt/openiban.eu/src`
-wird nicht überschrieben. Für spätere Entwicklung die neue Sourceversion verwenden.
+The script backs up the database using the existing backup service and saves
+the Python environment at `/var/backups/openiban-update/<timestamp>/venv`.
+It installs the included wheel without new dependencies, briefly restarts the
+API, checks reachability and configures timers. Nginx remains unchanged.
+The extracted directory includes the corresponding complete source code.
+Installed Python code resides in the existing venv; the older source copy at
+`/opt/openiban.eu/src` is not overwritten. Use the new source version for later development.
 
-## Ablauf
+## Workflow
 
-- Täglich 04:15 Uhr Europe/Berlin: offizielle Downloadseite lesen, aktuelle und zukünftige
-  TXT-Dateien laden, prüfen, versioniert importieren und bereits fällige Daten aktivieren.
-- Täglich 00:05 Uhr: vorgemerkte Daten zum Gültigkeitstag aktivieren. Kein API-Neustart nötig.
-- Verpasste Timerläufe werden nach Serverstart nachgeholt.
-- Download nur über HTTPS von bundesbank.de/www.bundesbank.de, einschließlich Weiterleitungen.
-- Datumsangaben werden von der offiziellen Seite gelesen. Unbekannte Quartalszeiträume,
-  unklare Links, defekte Dateien und Prüfsummenkonflikte stoppen den Lauf.
-- Automatische Freigabe erfordert mindestens 1.000 aktive Banken. Mehr als 10 % neue,
-  entfernte oder geänderte Banken, auffälliger BIC-Verlust oder Zeilenzahländerungen
-  außerhalb -20/+25 % erfordern eine manuelle Prüfung. Diese Grenzen sind technische
-  Schutzregeln, keine Vorgaben der Bundesbank.
-- Ein Downloadfehler oder ein letzter erfolgreicher Abruf vor mehr als 48 Stunden sperrt
-  die automatische Aktivierung. Der bestehende Bestand bleibt bestehen; die API behandelt
-  abgelaufene Daten weiterhin als nicht aktuell.
-- Gleicher Zeitraum mit anderer Datei wird nicht automatisch ersetzt. Bereits aktivierte
-  Versionen werden nach einem manuellen Rollback nicht erneut automatisch aktiviert.
-- Gleiche Dateiprüfsumme mit anderem Zeitraum benötigt wegen des bestehenden eindeutigen
-  Hash-Datenmodells eine manuelle Klärung; keine automatische Umdatierung.
+- Daily at 04:15 Europe/Berlin: read the official download page, download current
+  and future TXT files, validate, import versions and activate data already due.
+- Daily at 00:05: activate staged data on its validity start date. No API restart needed.
+- Missed timer runs are caught up after server startup.
+- Downloads and redirects use HTTPS on bundesbank.de/www.bundesbank.de only.
+- Dates come from the official page. Unknown quarterly periods, ambiguous links,
+  damaged files and checksum conflicts stop the run.
+- Automatic approval requires at least 1,000 active banks. More than 10% added,
+  removed or changed banks, unusual BIC loss, or row-count changes outside
+  -20/+25% require manual review. These are technical safeguards, not Bundesbank rules.
+- A download failure or a last successful download more than 48 hours ago blocks
+  automatic activation. The existing dataset is retained; expired data continues
+  to be treated as stale by the API.
+- A different file for the same period is not replaced automatically. Previously
+  activated versions are not automatically reactivated after a manual rollback.
+- The same file checksum with different validity dates requires manual resolution
+  because of the existing unique-hash data model; no automatic date reassignment.
 
-## Kontrolle
+## Monitoring
 
 ```bash
 sudo journalctl -u openiban-update-check.service -u openiban-update-activate.service -n 80 --no-pager
@@ -47,37 +46,37 @@ sudo -u openiban env OPENIBAN_DATABASE_URL=sqlite:////var/lib/openiban/openiban.
 systemctl list-timers 'openiban-update-*' --no-pager
 ```
 
-Exitcodes: 0 erfolgreich, 1 Fehler, 2 Warnung. Warnungen erscheinen im JSON/Journal
-und lassen den betreffenden Service als fehlgeschlagen erscheinen. Timer versuchen
-es am nächsten Termin erneut. **Es wird keine E-Mail oder Pushnachricht versandt.**
-Journal/Status müssen bis zur Einrichtung eines Monitorings regelmäßig geprüft werden.
-Bei weniger als 14 Tagen Restgültigkeit ohne freigegebenen Nachfolger wird gewarnt.
+Exit codes: 0 success, 1 error, 2 warning. Warnings appear in JSON/the journal
+and mark the corresponding service as failed. Timers retry on their next schedule.
+**The updater itself sends no email or push notification.** Check the journal/status
+regularly until monitoring is configured. A warning is raised when fewer than
+14 days of validity remain without an approved successor.
 
-Dateien und atomar gespeicherter Status liegen unter `/var/lib/openiban/updates`.
-Die vorhandene Datenbanksicherung enthält die importierten Versionen, aber nicht diesen
-Status oder die TXT-Kopien. Diese können über einen frischen Abruf neu aufgebaut werden;
-eine dabei verlorene manuelle Zurückstellung muss erneut bewertet werden. Für vollständige
-Wiederherstellung den Ordner und die Konfiguration in externe Backups aufnehmen.
+Files and atomically saved state reside at `/var/lib/openiban/updates`.
+The existing database backup includes imported versions, but excludes this state
+and TXT copies. A fresh download can rebuild them; any lost manual hold must be
+reviewed again. Include this directory and configuration in external backups
+for complete recovery.
 
-## Manuelle Prüfung
+## Manual review
 
-`update-status` nennt Kandidaten-ID, Änderungszahlen und Gründe. Erst nach fachlicher
-Prüfung und ab dem Gültigkeitstag die bestehende CLI verwenden:
+`update-status` lists candidate IDs, change counts and reasons. After reviewing
+the data, and from its validity start date, use the existing CLI:
 
 ```bash
 sudo -u openiban env OPENIBAN_DATABASE_URL=sqlite:////var/lib/openiban/openiban.db /opt/openiban.eu/.venv/bin/openiban activate VERSION-ID
 sudo systemctl start openiban-update-check.service
 ```
 
-## Automatik stoppen / Code zurücksetzen
+## Stop automation / roll back code
 
 ```bash
 sudo systemctl disable --now openiban-update-check.timer openiban-update-activate.timer
 sudo systemctl stop openiban-update-check.service openiban-update-activate.service
 ```
 
-Für ein Code-Rollback API stoppen, das aktuelle `/opt/openiban.eu/.venv` zur Seite
-verschieben und die vom Installer genannte Sicherung `venv` mit `cp -a` wieder an
-**den ursprünglichen Pfad** `/opt/openiban.eu/.venv` kopieren. Danach API starten.
-Die Datenbankstruktur wurde nicht geändert. Eine Datenrücksetzung separat mit der
-bestehenden `activate`-CLI durchführen; alte Daten werden dadurch nicht wieder aktuell.
+For code rollback, stop the API, move the current `/opt/openiban.eu/.venv` aside
+and use `cp -a` to restore the installer's reported `venv` backup to **its original
+path**, `/opt/openiban.eu/.venv`. Then start the API. Version 0.2.0 did not change
+the database schema. Roll back data separately using the existing `activate` CLI;
+this does not make old data current again.

@@ -1,33 +1,33 @@
-# OpenIBAN.eu – nächste Meilensteine
+# OpenIBAN.eu – next milestones
 
-Festgelegt: persönliches nichtkommerzielles Projekt, GitHub `klammerauf/openiban.eu`,
-Deutschland zum Start, Domain `openiban.eu`, Website bei lima-city vorgesehen.
+Established scope: personal non-commercial project, GitHub `klammerauf/openiban.eu`,
+Germany at launch, domain `openiban.eu`, website planned at lima-city.
 
-## Erster Entwicklungsstand
+## Initial implementation
 
-- [x] Unabhängige Python-/FastAPI-Anwendung und deutsche IBAN-Prüfung.
-- [x] Öffentliche Bundesbank-TXT importieren und versionieren.
-- [x] Geprüfte Daten aktivieren und zurücksetzen.
-- [x] Bankdaten mit Quelle und Gültigkeit ausgeben.
-- [x] Lokale Anleitung und automatisierte Tests.
+- [x] Independent Python/FastAPI application and German IBAN validation.
+- [x] Import and version the public Bundesbank TXT file.
+- [x] Activate reviewed data and roll back.
+- [x] Return bank data with source and validity.
+- [x] Local instructions and automated tests.
 
-## Danach
+## Next steps
 
-- [x] Quellcode auf GitHub veröffentlichen und MIT-Lizenz festlegen.
-- [x] API auf Ubuntu bereitstellen und echten Bundesbank-Bestand importieren.
-- [x] Hosting: API bei Hetzner, Website bei lima-city.
-- [ ] Vollständige Import-Diff-Ansicht und Erkennung auffälliger Bestandsänderungen.
-- [x] Automatische Erkennung neuer Quelldateien, Freigabe und termingerechte Aktivierung.
-- [ ] Website für Interessenten mit IBAN-Formular und API-Erklärung.
-- [ ] Geschützter Maintainer-Bereich mit Rollen, Anmeldung und Freigabeprozess.
-- [ ] Beitragssystem mit Quellenbelegen; Umgang mit Änderungen offizieller Daten klären.
-- [ ] Datenbankmigrationen und PostgreSQL-Integrationstests vor PostgreSQL-Betrieb.
-- [ ] Hosting, TLS, Missbrauchsschutz, Monitoring und Wiederherstellung testen.
-- [ ] Öffentlicher Pilotbetrieb, danach Release 1.0.
+- [x] Publish source code on GitHub and adopt the MIT License.
+- [x] Deploy the API on Ubuntu and import a real Bundesbank dataset.
+- [x] Hosting: API at Hetzner, website at lima-city.
+- [ ] Complete import diff view and detection of unusual dataset changes.
+- [x] Automatically detect new source files, approve them and activate on schedule.
+- [ ] Website for visitors with an IBAN form and API explanation.
+- [ ] Protected maintainer area with roles, login and approval workflow.
+- [ ] Contribution system with source evidence; clarify changes to official data.
+- [ ] Database migrations and PostgreSQL integration tests before PostgreSQL operation.
+- [ ] Test hosting, TLS, abuse protection, monitoring and recovery.
+- [ ] Public pilot operation, followed by release 1.0.
 
-Die Anpassung einer Firmen-FastAPI als API-Client ist eine spätere separate
-Integrationsaufgabe. Sie ist keine Voraussetzung und kein Bestandteil dieses
-privaten Repositorys. Weitere Länder bleiben außerhalb der ersten Version.
+Adapting a company FastAPI application as an API client is a later, separate
+integration task. It is neither a prerequisite nor part of this personal
+repository. Additional countries remain outside the initial version.
 
-Umgesetzt: HTTPS, Proxy-Rate-Limit, lokale tägliche Backups und SMTP-Warnungen.
-Offen: externe Ausfallüberwachung, externe Backups und Wiederherstellungstest.
+Implemented: HTTPS, proxy rate limits, local daily backups and SMTP warnings.
+Outstanding: external outage monitoring, external backups and a recovery test.

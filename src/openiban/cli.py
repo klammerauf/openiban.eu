@@ -15,18 +15,18 @@ from openiban.storage import activate, build_engine, initialize, list_versions, 
 def main() -> None:
     parser = argparse.ArgumentParser(prog="openiban")
     commands = parser.add_subparsers(dest="command", required=True)
-    commands.add_parser("init-db", help="Initiales Datenbankschema anlegen")
-    importer = commands.add_parser("import-bundesbank", help="Öffentliche TXT prüfen und vormerken")
+    commands.add_parser("init-db", help="Create the initial database schema")
+    importer = commands.add_parser(
+        "import-bundesbank", help="Validate and stage the public TXT file"
+    )
     importer.add_argument("file", type=Path)
     importer.add_argument("--valid-from", type=date.fromisoformat, required=True)
     importer.add_argument("--valid-until", type=date.fromisoformat, required=True)
     importer.add_argument("--source-url", default=SOURCE_URL)
-    activator = commands.add_parser(
-        "activate", help="Geprüfte Version aktivieren oder zurücksetzen"
-    )
+    activator = commands.add_parser("activate", help="Activate a reviewed version or roll back")
     activator.add_argument("version")
     activator.add_argument("--allow-expired", action="store_true")
-    commands.add_parser("versions", help="Datenversionen anzeigen")
+    commands.add_parser("versions", help="List dataset versions")
     for name in ("auto-check", "auto-activate", "update-status"):
         command = commands.add_parser(name)
         command.add_argument(
@@ -63,16 +63,14 @@ def main() -> None:
         else:
             output = list_versions(engine)
     except (ValueError, OSError) as exc:
-        parser.exit(1, f"Fehler: {exc}\n")
+        parser.exit(1, f"Error: {exc}\n")
     except SQLAlchemyError:
-        parser.exit(
-            1, "Datenbankfehler. Verbindung prüfen und zuerst 'openiban init-db' ausführen.\n"
-        )
+        parser.exit(1, "Database error. Check the connection and run 'openiban init-db' first.\n")
     finally:
         engine.dispose()
     print(json.dumps(output, indent=2, ensure_ascii=False, default=str))
     if isinstance(output, dict) and output.get("warnings"):
-        parser.exit(2, "Updater-Warnung: Details siehe JSON-Ausgabe.\n")
+        parser.exit(2, "Updater warning: see JSON output for details.\n")
 
 
 if __name__ == "__main__":

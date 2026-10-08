@@ -1,54 +1,52 @@
-# Betrieb des ersten Entwicklungsstands
+# Operating the initial implementation
 
-## Lokal
+## Local operation
 
-API und Import-CLI verwenden dieselbe Datenbankkonfiguration. Schema einmal mit
-`openiban init-db` anlegen, danach API starten. `init-db` kann wiederholt werden,
-ist aber kein Werkzeug für zukünftige Schema-Migrationen. Imports und
-Aktivierungen durch einen lokalen Maintainer ausführen; keine parallele
-Initialisierung. Zugang zur Datenbank entspricht administrativem Zugriff.
+The API and import CLI share database configuration. Create the schema once with
+`openiban init-db`, then start the API. `init-db` can be repeated, but is not a
+future schema migration tool. A local maintainer performs imports and activations;
+avoid concurrent initialization. Database access is equivalent to administrative access.
 
-Die API speichert oder protokolliert keine IBAN-Anfragen. Standard-Access-Logs
-des Servers werden im dokumentierten Startbefehl deaktiviert; Fehlerantworten
-übernehmen keine Eingaben. Die Antworten tragen `Cache-Control: no-store`.
-IBANs gehören ausschließlich in den JSON-Body. Das Zurückweisen von Query-
-Parametern verhindert nicht, dass vorgelagerte Systeme URLs bereits protokollieren.
+The API does not store or log IBAN requests. The documented startup command
+disables standard server access logs; error responses do not echo input.
+Responses carry `Cache-Control: no-store`. IBANs belong exclusively in the JSON
+body. Rejecting query parameters does not prevent upstream systems from already
+logging URLs.
 
-## Datenfreigabe und Wiederherstellung
+## Data approval and recovery
 
-1. Datei ausschließlich von der offiziellen Bundesbank-Seite herunterladen.
-2. Gültigkeit und Importbericht prüfen, auffällige Änderungen untersuchen.
-3. Version ausdrücklich aktivieren; zukünftige Daten werden nur mit eingerichteter Automatik zum Gültigkeitstag aktiv.
-4. `/health/ready` und eine bekannte Testabfrage prüfen.
-5. Bei einem Fehler die vorige Version aktivieren; abgelaufene Daten bleiben als
-   abgelaufen erkennbar und werden nicht als gültige Bankzuordnung ausgegeben.
+1. Download files exclusively from the official Bundesbank website.
+2. Review validity and the import report; investigate unusual changes.
+3. Explicitly activate the version; future data becomes active on its validity
+   start date only when automation is configured.
+4. Check `/health/ready` and a known test query.
+5. On failure, activate the previous version; expired data remains identifiable
+   as expired and is not returned as a valid bank mapping.
 
-Zum Sichern der SQLite-Datenbank die API und Importprozesse beenden und
-`data/openiban.db` kopieren oder das SQLite-Backup-Verfahren verwenden. Einen
-Restore in einer separaten Umgebung testen. Für PostgreSQL ein dafür geeignetes
-Backup-/Restore-Verfahren einrichten. Quelldateien separat aufbewahren, sofern
-eine spätere identische Rekonstruktion benötigt wird.
+To back up SQLite, stop API and import processes and copy `data/openiban.db`, or
+use SQLite's backup mechanism. Test restoration in a separate environment.
+Configure a suitable backup/restore procedure for PostgreSQL. Retain source
+files separately if identical reconstruction may be needed later.
 
-## Bereitgestellter Betrieb
+## Deployed operation
 
-Stand 8. Oktober 2026: API auf Ubuntu 24.04 bei Hetzner, Python 3.12,
-systemd-Dienst `openiban`, SQLite unter `/var/lib/openiban/openiban.db`.
-Nginx leitet an `127.0.0.1:8000` weiter, begrenzt Anfragen und terminiert HTTPS.
-Zertifikatserneuerung und lokale tägliche SQLite-Backups wurden geprüft.
+As of 8 October 2026: API on Ubuntu 24.04 at Hetzner, Python 3.12, systemd service
+`openiban`, SQLite at `/var/lib/openiban/openiban.db`. Nginx forwards requests to
+`127.0.0.1:8000`, applies rate limits and terminates HTTPS. Certificate renewal
+and local daily SQLite backups have been checked.
 
-- [Automatische Datenaktualisierung](../deployment/auto-update/README.md)
-- [SMTP-Warnungen](../deployment/notifications/README.md)
+- [Automatic data updates](../deployment/auto-update/README.md)
+- [SMTP warnings](../deployment/notifications/README.md)
 
-Die Installationsskripte setzen die bestehende API und den Backupdienst voraus;
-sie sind keine vollständige Neuinstallation eines leeren Servers.
-Der Update-Installer erwartet ein Wheel in seinem Unterordner `wheels`. Bei
-Installation aus Git dieses vorher erstellen:
+Installation scripts assume the existing API and backup service; they do not
+provide a complete installation on an empty server. The update installer expects
+a wheel in its `wheels` subdirectory. When installing from Git, build it first:
 
 ```bash
 python -m pip wheel --no-deps . -w deployment/auto-update/wheels
 ```
 
-Offen bleiben externe Backups, ein Wiederherstellungstest und eine externe
-Verfügbarkeitsüberwachung. Der lokale Mailmonitor kann keinen vollständigen
-Ausfall seines eigenen Servers melden. Der Code steht unter der MIT-Lizenz. Betreiber-/Datenschutztexte
-sind noch festzulegen. Die Website ist bei lima-city geplant.
+External backups, a recovery test and external availability monitoring remain
+outstanding. The local email monitor cannot report a complete outage of its own
+server. The code is licensed under MIT. Operator and privacy notices remain to
+be defined. The website is planned at lima-city.

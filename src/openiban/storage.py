@@ -150,7 +150,7 @@ def stage_file(
     engine: Engine, path: Path, valid_from: date, valid_until: date, source_url: str = SOURCE_URL
 ) -> dict:
     if valid_until < valid_from:
-        raise ValueError("Gültigkeitsende liegt vor dem Beginn.")
+        raise ValueError("Validity end date precedes the start date.")
     parsed_url = urlsplit(source_url)
     if (
         parsed_url.scheme != "https"
@@ -159,7 +159,7 @@ def stage_file(
         or parsed_url.password
         or len(source_url) > 1000
     ):
-        raise ValueError("Quellen-URL muss eine HTTPS-Adresse der Bundesbank sein.")
+        raise ValueError("Source URL must be a Bundesbank HTTPS address.")
     with path.open("rb") as handle:
         content = handle.read(MAX_FILE_BYTES + 1)
     parsed = parse_txt(content)
@@ -171,7 +171,7 @@ def stage_file(
         if existing:
             if existing["valid_from"] != valid_from or existing["valid_until"] != valid_until:
                 raise ValueError(
-                    "Identische Datei wurde bereits mit anderem Gültigkeitszeitraum importiert."
+                    "Identical file was already imported with a different validity period."
                 )
             return {
                 "version": existing["id"],
@@ -248,17 +248,17 @@ def activate(
         )
         row = conn.execute(select(datasets).where(datasets.c.id == version_id)).mappings().first()
         if row is None:
-            raise ValueError("Unbekannte Datenversion.")
+            raise ValueError("Unknown dataset version.")
         status = dataset_status(dict(row), on_date)
         if status == "not_yet_valid":
-            raise ValueError("Datenversion ist noch nicht gültig.")
+            raise ValueError("Dataset version is not yet valid.")
         if status == "expired" and not allow_expired:
-            raise ValueError("Datenversion ist abgelaufen; Rollback erfordert --allow-expired.")
+            raise ValueError("Dataset version has expired; rollback requires --allow-expired.")
         previous_id = conn.execute(
             select(active_dataset.c.dataset_id).where(active_dataset.c.id == 1)
         ).scalar_one()
         if expected_previous_id is not None and previous_id != expected_previous_id:
-            raise ValueError("Aktiver Bestand wurde inzwischen geändert. Prüfung wiederholen.")
+            raise ValueError("Active dataset has changed. Repeat the review.")
         conn.execute(
             update(active_dataset).where(active_dataset.c.id == 1).values(dataset_id=version_id)
         )
