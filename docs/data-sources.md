@@ -47,3 +47,9 @@ mit Gültigkeit 7. September bis 6. Dezember 2026 verwendet. Der Parser wurde
 gegen diese echte Datei sowie synthetische Fehlerfälle geprüft. Downloadlinks
 und Gültigkeitszeiträume dürfen bei künftigen Imports nicht ungeprüft wiederverwendet
 werden. Die regulären Aktualisierungen erfolgen vierteljährlich.
+
+## Zusätzliche europäische Verzeichnisse
+
+Die neuen Adapter, Quellenformate, Nutzungsbedingungen, Prüfstand und manuellen
+Freigabeschritte sind in [Europäische Bankverzeichnisse](european-directories.md) dokumentiert.
+Die ursprüngliche deutsche Import- und Updatearchitektur bleibt erhalten.

@@ -1,7 +1,7 @@
 # OpenIBAN.eu
 
 Eigenständiges, nichtkommerzielles Projekt zur IBAN-Prüfung und Abfrage von
-Bankdaten, zunächst für Deutschland. Die API läuft mit FastAPI, versionierten Bundesbank-Daten und automatischer Aktualisierung. Keine ERP-Abhängigkeit.
+Bankdaten für DE, CH, PL, LT, BE, CZ, LV, SI und GR (GR-Importer vorläufig). Die API läuft mit FastAPI, versionierten Bundesbank-Daten und automatischer Aktualisierung. Keine ERP-Abhängigkeit.
 
 ## Öffentlichen Dienst nutzen – ohne eigene Installation
 
@@ -35,7 +35,7 @@ Die folgenden Installationsschritte sind für Entwicklung und eigenen Betrieb ge
 
 ## Funktionsumfang
 
-- Deutsche IBAN: Leerzeichen entfernen, ASCII-Großschreibung, Format/Länge und MOD-97 prüfen.
+- IBANs der neun genannten Länder: Leerzeichen entfernen, ASCII-Großschreibung, Landesformat/Länge und MOD-97 prüfen.
 - Bankname, BIC, BLZ, Postleitzahl und Ort aus dem aktiven Bundesbank-Datenbestand liefern.
 - Unbekannte/gelöschte BLZ, fehlende Daten und abgelaufene Daten unterscheiden.
 - Öffentliche Bundesbank-TXT prüfen, versioniert importieren und ausdrücklich aktivieren.
@@ -45,7 +45,9 @@ Die folgenden Installationsschritte sind für Entwicklung und eigenen Betrieb ge
 `iban_valid` bedeutet **Format und IBAN-Prüfsumme korrekt**. Es bestätigt weder
 Kontoexistenz noch Kontoinhaber, Zahlungsfähigkeit oder nationale
 Kontoprüfzifferverfahren. Der BLZ-Status steht separat in `bank_code_valid`.
-Andere Länder liefern `reason: unsupported_country` und `iban_valid: null`.
+Weitere Länder liefern `reason: unsupported_country` und `iban_valid: null`.
+Die neuen Importer sind nicht automatisch auf dem öffentlichen Dienst aktiviert;
+Quellenprüfung, Anleitung und offene Freigaben: [Europäische Verzeichnisse](docs/european-directories.md).
 
 ## Lokal starten (Python 3.12)
 
@@ -134,8 +136,8 @@ daher `bank_lookup_status: not_found` enthalten.
 | Feld | Bedeutung |
 |---|---|
 | `normalized_iban` | Normalisierte Eingabe; keine Buchstaben/Punktuation entfernt |
-| `country_supported` | Deutschland wird unterstützt |
-| `iban_valid` | DE-Format und IBAN-Prüfsumme; bei nicht unterstützten Ländern `null` |
+| `country_supported` | Landesformat gehört zu den unterstützten Ländern |
+| `iban_valid` | Landesformat und IBAN-Prüfsumme; bei nicht unterstützten Ländern `null` |
 | `checks` | Einzelne Format-/Prüfsummenergebnisse; `null` bedeutet nicht geprüft |
 | `reason` | `valid`, `invalid_format`, `invalid_characters`, `invalid_checksum`, `unsupported_country` |
 | `bank_lookup_status` | `found`, `not_found`, `deleted`, `not_checked`, `unavailable`, `stale` |
@@ -166,7 +168,7 @@ uv pip compile pyproject.toml --extra dev --python-version 3.12 --output-file re
 
 ## Datenquelle, Lizenz und nächste Schritte
 
-**Quelle: Deutsche Bundesbank.** Siehe [Quellen und Nutzungsbedingungen](docs/data-sources.md).
+**Quelle Deutschland: Deutsche Bundesbank.** Weitere Länder: [Importer und Nutzungsbedingungen](docs/european-directories.md). Siehe [Quellen und Nutzungsbedingungen](docs/data-sources.md).
 Der Programmcode steht unter der [MIT-Lizenz](LICENSE).
 Copyright (c) 2026 Sebastian Arnold. Die Nutzungsbedingungen der Bundesbank-Daten
 gelten unabhängig davon; die MIT-Lizenz erteilt keine zusätzlichen Rechte an diesen Daten.

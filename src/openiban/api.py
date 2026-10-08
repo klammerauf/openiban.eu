@@ -12,8 +12,9 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 
 from openiban import __version__
+from openiban.directory_storage import lookup_directory
 from openiban.storage import build_engine, lookup
-from openiban.validation import validate_german_iban
+from openiban.validation import COUNTRIES, validate_iban
 
 
 class ValidationRequest(BaseModel):
@@ -56,7 +57,7 @@ class ValidationResponse(BaseModel):
     normalized_iban: str
     country_supported: bool
     iban_valid: bool | None = Field(
-        description="Nur DE-Format und IBAN-Prüfsumme; keine Kontoexistenzprüfung."
+        description="Landesformat und IBAN-Prüfsumme; keine Kontoexistenzprüfung."
     )
     reason: Literal[
         "valid", "invalid_characters", "invalid_format", "invalid_checksum", "unsupported_country"
@@ -66,7 +67,7 @@ class ValidationResponse(BaseModel):
         "not_checked", "unavailable", "stale", "found", "not_found", "deleted"
     ]
     bank_code_valid: bool | None = Field(
-        description="BLZ im aktuellen aktiven Bestand; null = nicht prüfbar."
+        description="Bankkennung im aktuellen aktiven Landesbestand; null = nicht prüfbar."
     )
     bank: BankInfo | None = None
     data: DatasetInfo | None = None
@@ -132,7 +133,7 @@ def create_app(engine: Engine | None = None) -> FastAPI:
         version=__version__,
         lifespan=lifespan,
         description=(
-            "Deutsche IBANs: Format, MOD-97 und Bankdaten aus der Bundesbank-Datei. "
+            "Europäische IBANs: Format, MOD-97 und lokale offizielle Bankverzeichnisse. "
             "Keine Prüfung von Kontoexistenz, Kontoinhaber oder nationalen Kontoprüfziffern."
         ),
     )
@@ -165,7 +166,12 @@ def create_app(engine: Engine | None = None) -> FastAPI:
 
     @app.get("/v1/countries", tags=["IBAN"])
     def countries():
-        return {"countries": [{"code": "DE", "iban_length": 22, "bank_lookup_supported": True}]}
+        return {
+            "countries": [
+                {"code": code, "iban_length": spec[0], "bank_lookup_supported": True}
+                for code, spec in COUNTRIES.items()
+            ]
+        }
 
     @app.post(
         "/v1/validate",
@@ -174,7 +180,7 @@ def create_app(engine: Engine | None = None) -> FastAPI:
         responses={413: {"description": "Request zu groß"}},
     )
     def validate(payload: ValidationRequest, request: Request):
-        result = validate_german_iban(payload.iban)
+        result = validate_iban(payload.iban)
         response = ValidationResponse(
             normalized_iban=result.normalized,
             country_supported=result.country_supported,
@@ -187,7 +193,12 @@ def create_app(engine: Engine | None = None) -> FastAPI:
         if not result.iban_valid:
             return response
         try:
-            info, bank = lookup(request.app.state.engine, result.normalized[4:12])
+            country = result.normalized[:2]
+            code = result.normalized[4 : 4 + COUNTRIES[country][2]]
+            if country == "DE":
+                info, bank = lookup(request.app.state.engine, code)
+            else:
+                info, bank = lookup_directory(request.app.state.engine, country, code)
         except SQLAlchemyError:
             response.bank_lookup_status = "unavailable"
             return response

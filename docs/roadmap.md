@@ -27,7 +27,9 @@ Deutschland zum Start, Domain `openiban.eu`, Website bei lima-city vorgesehen.
 
 Die Anpassung einer Firmen-FastAPI als API-Client ist eine spätere separate
 Integrationsaufgabe. Sie ist keine Voraussetzung und kein Bestandteil dieses
-privaten Repositorys. Weitere Länder bleiben außerhalb der ersten Version.
+privaten Repositorys. Für den nächsten Entwicklungsstand liegen zusätzliche Länderadapter vor; siehe
+[Quellenprüfung und offene Freigaben](european-directories.md). Die Originalprüfung
+für Griechenland und Nutzungsfragen für PL/LV/GR sind noch offen.
 
 Umgesetzt: HTTPS, Proxy-Rate-Limit, lokale tägliche Backups und SMTP-Warnungen.
 Offen: externe Ausfallüberwachung, externe Backups und Wiederherstellungstest.
