@@ -1,0 +1,8 @@
+[Unit]
+Description=OpenIBAN daily data activate
+[Timer]
+OnCalendar=*-*-* 00:05:00 Europe/Berlin
+Persistent=true
+Unit=openiban-update-activate.service
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,13 @@
+[Unit]
+Description=OpenIBAN email monitoring
+Wants=network-online.target
+After=network-online.target
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/local/sbin/openiban-notify.py check
+TimeoutStartSec=300
+UMask=0077
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/openiban-notify

@@ -1,0 +1,7 @@
+[Unit]
+Description=Check OpenIBAN health every 30 minutes
+[Timer]
+OnCalendar=*-*-* *:10,40:00
+Persistent=true
+[Install]
+WantedBy=timers.target

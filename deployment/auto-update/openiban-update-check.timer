@@ -1,0 +1,8 @@
+[Unit]
+Description=OpenIBAN daily data check
+[Timer]
+OnCalendar=*-*-* 04:15:00 Europe/Berlin
+Persistent=true
+Unit=openiban-update-check.service
+[Install]
+WantedBy=timers.target

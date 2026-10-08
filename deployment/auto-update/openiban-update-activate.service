@@ -1,0 +1,18 @@
+[Unit]
+Description=OpenIBAN automatic data activate
+Wants=network-online.target
+After=network-online.target
+[Service]
+Type=oneshot
+User=openiban
+Group=openiban
+Environment=OPENIBAN_DATABASE_URL=sqlite:////var/lib/openiban/openiban.db
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/openiban.eu/.venv/bin/openiban auto-activate
+TimeoutStartSec=600
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/openiban
