@@ -7,6 +7,7 @@ name = "openiban-eu"
 version = "0.2.0"
 description = "Independent IBAN validation and bank data API, starting with Germany"
 readme = "README.md"
+license = {file = "LICENSE"}
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115,<1",

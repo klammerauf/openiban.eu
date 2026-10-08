@@ -50,5 +50,5 @@ python -m pip wheel --no-deps . -w deployment/auto-update/wheels
 
 Offen bleiben externe Backups, ein Wiederherstellungstest und eine externe
 Verfügbarkeitsüberwachung. Der lokale Mailmonitor kann keinen vollständigen
-Ausfall seines eigenen Servers melden. Codelizenz und Betreiber-/Datenschutztexte
-sind ebenfalls noch festzulegen. Die Website ist bei lima-city geplant.
+Ausfall seines eigenen Servers melden. Der Code steht unter der MIT-Lizenz. Betreiber-/Datenschutztexte
+sind noch festzulegen. Die Website ist bei lima-city geplant.

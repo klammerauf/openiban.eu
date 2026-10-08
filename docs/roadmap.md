@@ -13,7 +13,7 @@ Deutschland zum Start, Domain `openiban.eu`, Website bei lima-city vorgesehen.
 
 ## Danach
 
-- [ ] Pull Request prüfen, Codelizenz auswählen und ersten Stand übernehmen.
+- [x] Quellcode auf GitHub veröffentlichen und MIT-Lizenz festlegen.
 - [x] API auf Ubuntu bereitstellen und echten Bundesbank-Bestand importieren.
 - [x] Hosting: API bei Hetzner, Website bei lima-city.
 - [ ] Vollständige Import-Diff-Ansicht und Erkennung auffälliger Bestandsänderungen.

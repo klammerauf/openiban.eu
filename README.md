@@ -167,8 +167,9 @@ uv pip compile pyproject.toml --extra dev --python-version 3.12 --output-file re
 ## Datenquelle, Lizenz und nächste Schritte
 
 **Quelle: Deutsche Bundesbank.** Siehe [Quellen und Nutzungsbedingungen](docs/data-sources.md).
-Die Datenbedingungen gelten unabhängig von der noch auszuwählenden Codelizenz.
-Das Repository ist öffentlich; eine Open-Source-Lizenz wurde bisher nicht festgelegt.
+Der Programmcode steht unter der [MIT-Lizenz](LICENSE).
+Copyright (c) 2026 Sebastian Arnold. Die Nutzungsbedingungen der Bundesbank-Daten
+gelten unabhängig davon; die MIT-Lizenz erteilt keine zusätzlichen Rechte an diesen Daten.
 
 Die API wird unter https://api.openiban.eu auf einem Ubuntu-Server bei Hetzner
 betrieben. Nginx übernimmt HTTPS und Rate-Limits. Die Website bei lima-city und
