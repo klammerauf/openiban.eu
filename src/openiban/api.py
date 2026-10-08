@@ -12,8 +12,9 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 
 from openiban import __version__
+from openiban.directory_storage import lookup_directory
 from openiban.storage import build_engine, lookup
-from openiban.validation import validate_german_iban
+from openiban.validation import COUNTRIES, validate_iban
 
 
 class ValidationRequest(BaseModel):
@@ -22,7 +23,7 @@ class ValidationRequest(BaseModel):
         strict=True,
         min_length=1,
         max_length=128,
-        description="IBAN; Leerzeichen und ASCII-Kleinschreibung sind erlaubt.",
+        description="IBAN; spaces and lowercase ASCII letters are allowed.",
     )
 
 
@@ -56,7 +57,7 @@ class ValidationResponse(BaseModel):
     normalized_iban: str
     country_supported: bool
     iban_valid: bool | None = Field(
-        description="Nur DE-Format und IBAN-Prüfsumme; keine Kontoexistenzprüfung."
+        description="Country format and IBAN checksum; does not verify account existence."
     )
     reason: Literal[
         "valid", "invalid_characters", "invalid_format", "invalid_checksum", "unsupported_country"
@@ -66,7 +67,7 @@ class ValidationResponse(BaseModel):
         "not_checked", "unavailable", "stale", "found", "not_found", "deleted"
     ]
     bank_code_valid: bool | None = Field(
-        description="BLZ im aktuellen aktiven Bestand; null = nicht prüfbar."
+        description="Bank identifier in the current active dataset; null means not verifiable."
     )
     bank: BankInfo | None = None
     data: DatasetInfo | None = None
@@ -92,7 +93,7 @@ class RequestBoundary:
 
         # Never accept IBANs as query parameters, even on documentation/health routes.
         if scope.get("query_string"):
-            return await JSONResponse({"detail": "Query-Parameter werden nicht unterstützt."}, 400)(
+            return await JSONResponse({"detail": "Query parameters are not supported."}, 400)(
                 scope, receive, no_cache
             )
         body = bytearray()
@@ -102,7 +103,7 @@ class RequestBoundary:
                 return
             body.extend(message.get("body", b""))
             if len(body) > self.max_bytes:
-                return await JSONResponse({"detail": "Request zu groß."}, 413)(
+                return await JSONResponse({"detail": "Request too large."}, 413)(
                     scope, receive, no_cache
                 )
             if not message.get("more_body", False):
@@ -132,8 +133,8 @@ def create_app(engine: Engine | None = None) -> FastAPI:
         version=__version__,
         lifespan=lifespan,
         description=(
-            "Deutsche IBANs: Format, MOD-97 und Bankdaten aus der Bundesbank-Datei. "
-            "Keine Prüfung von Kontoexistenz, Kontoinhaber oder nationalen Kontoprüfziffern."
+            "European IBANs: format, MOD-97 and local official bank directories. "
+            "Does not verify account existence, account holders or domestic account checksums."
         ),
     )
     app.add_middleware(RequestBoundary)
@@ -141,18 +142,16 @@ def create_app(engine: Engine | None = None) -> FastAPI:
     @app.exception_handler(RequestValidationError)
     async def invalid_request(_request: Request, _exc: RequestValidationError):
         # FastAPI's default validation details can echo sensitive input.
-        return JSONResponse(
-            {"detail": "Erwartet wird ein JSON-Objekt mit iban (1–128 Zeichen)."}, 422
-        )
+        return JSONResponse({"detail": "Expected a JSON object with iban (1–128 characters)."}, 422)
 
-    @app.get("/health/live", tags=["Betrieb"])
+    @app.get("/health/live", tags=["Operations"])
     def live():
         return {"status": "ok"}
 
     @app.get(
         "/health/ready",
-        tags=["Betrieb"],
-        responses={503: {"description": "Bankdaten nicht bereit"}},
+        tags=["Operations"],
+        responses={503: {"description": "Bank data not ready"}},
     )
     def ready(request: Request):
         try:
@@ -165,16 +164,21 @@ def create_app(engine: Engine | None = None) -> FastAPI:
 
     @app.get("/v1/countries", tags=["IBAN"])
     def countries():
-        return {"countries": [{"code": "DE", "iban_length": 22, "bank_lookup_supported": True}]}
+        return {
+            "countries": [
+                {"code": code, "iban_length": spec[0], "bank_lookup_supported": True}
+                for code, spec in COUNTRIES.items()
+            ]
+        }
 
     @app.post(
         "/v1/validate",
         response_model=ValidationResponse,
         tags=["IBAN"],
-        responses={413: {"description": "Request zu groß"}},
+        responses={413: {"description": "Request too large"}},
     )
     def validate(payload: ValidationRequest, request: Request):
-        result = validate_german_iban(payload.iban)
+        result = validate_iban(payload.iban)
         response = ValidationResponse(
             normalized_iban=result.normalized,
             country_supported=result.country_supported,
@@ -187,7 +191,12 @@ def create_app(engine: Engine | None = None) -> FastAPI:
         if not result.iban_valid:
             return response
         try:
-            info, bank = lookup(request.app.state.engine, result.normalized[4:12])
+            country = result.normalized[:2]
+            code = result.normalized[4 : 4 + COUNTRIES[country][2]]
+            if country == "DE":
+                info, bank = lookup(request.app.state.engine, code)
+            else:
+                info, bank = lookup_directory(request.app.state.engine, country, code)
         except SQLAlchemyError:
             response.bank_lookup_status = "unavailable"
             return response

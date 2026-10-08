@@ -61,12 +61,12 @@ def problems():
         ]
     )
     if result.returncode not in (0, 2):
-        issues.append("Updater-Status konnte nicht gelesen werden; Serverjournal prüfen.")
+        issues.append("Could not read updater status; check the server journal.")
     else:
         try:
             issues.extend(json.loads(result.stdout)["warnings"])
         except (ValueError, KeyError, TypeError):
-            issues.append("Updater liefert ein ungültiges Statusformat.")
+            issues.append("Updater returned an invalid status format.")
     for unit in [
         "openiban",
         "openiban-update-check",
@@ -74,15 +74,15 @@ def problems():
         "openiban-backup",
     ]:
         if run(["systemctl", "is-failed", unit + ".service"]).stdout.strip() == "failed":
-            issues.append(unit + ".service ist fehlgeschlagen.")
+            issues.append(unit + ".service has failed.")
     if run(["systemctl", "is-active", "openiban.service"]).returncode:
-        issues.append("API-Dienst ist nicht aktiv.")
+        issues.append("API service is not active.")
     for unit in ["openiban-update-check", "openiban-update-activate", "openiban-backup"]:
         if run(["systemctl", "is-active", unit + ".timer"]).returncode:
-            issues.append(unit + ".timer ist nicht aktiv.")
+            issues.append(unit + ".timer is not active.")
     backups = list(Path("/var/backups/openiban").glob("openiban-*.db"))
     if not backups or time.time() - max(p.stat().st_mtime for p in backups) > 36 * 3600:
-        issues.append("Keine lokale Datenbanksicherung innerhalb der letzten 36 Stunden.")
+        issues.append("No local database backup within the last 36 hours.")
     return sorted(set(issues))
 
 
@@ -94,24 +94,24 @@ def check(config):
         if issues != previous.get("issues") or now - previous.get("sent", 0) >= 86400:
             send(
                 config,
-                "Handlungsbedarf",
+                "Action required",
                 "\n".join("- " + item for item in issues)
-                + "\n\nDetails auf dem Server mit journalctl prüfen.\n",
+                + "\n\nCheck details on the server using journalctl.\n",
             )
             save(STATE, {"issues": issues, "sent": now})
-            print("Warnung versandt.")
+            print("Warning sent.")
         else:
-            print("Bekannte Warnung; nächste Erinnerung nach 24 Stunden.")
+            print("Known warning; next reminder after 24 hours.")
     elif previous.get("issues"):
         send(
             config,
-            "Entwarnung",
-            "Alle vom lokalen Monitor geprüften Zustände sind wieder in Ordnung.",
+            "Recovery",
+            "All states checked by the local monitor are healthy again.",
         )
         save(STATE, {"issues": [], "sent": now})
-        print("Entwarnung versandt.")
+        print("Recovery notification sent.")
     else:
-        print("Keine Warnungen.")
+        print("No warnings.")
 
 
 def main():
@@ -119,26 +119,24 @@ def main():
     parser.add_argument("command", choices=["setup", "test", "check"])
     args = parser.parse_args()
     if args.command == "setup":
-        recipient = input("Empfängeradresse für Warnungen: ").strip()
+        recipient = input("Recipient address for warnings: ").strip()
         if "@" not in recipient or any(c in recipient for c in "\r\n"):
-            raise ValueError("Ungültige Empfängeradresse.")
-        password = getpass.getpass("SMTP-Passwort für info@openiban.eu (verdeckt): ")
+            raise ValueError("Invalid recipient address.")
+        password = getpass.getpass("SMTP password for info@openiban.eu (hidden): ")
         if not password:
-            raise ValueError("Leeres Passwort nicht zulässig.")
+            raise ValueError("Empty passwords are not allowed.")
         save(CONFIG, {"username": "info@openiban.eu", "password": password, "recipient": recipient})
-        print("SMTP-Zugang geschützt gespeichert.")
+        print("SMTP credentials stored securely.")
         return
     config = json.loads(CONFIG.read_text())
     if args.command == "test":
         send(
             config,
-            "Testnachricht",
-            "Der SMTP-Versand für OpenIBAN.eu funktioniert.\n"
-            "Empfänger: "
-            + config["recipient"]
-            + "\nDie automatische Überwachung prüft alle 30 Minuten.",
+            "Test message",
+            "SMTP delivery for OpenIBAN.eu is working.\n"
+            "Recipient: " + config["recipient"] + "\nAutomatic monitoring checks every 30 minutes.",
         )
-        print("Testnachricht vom SMTP-Server angenommen; bitte Posteingang/Spam prüfen.")
+        print("Test message accepted by SMTP server; check inbox and spam folder.")
     else:
         check(config)
 
@@ -149,9 +147,9 @@ if __name__ == "__main__":
     except Exception as exc:
         # Never print SMTP responses or configuration: they may contain credentials.
         print(
-            "Benachrichtigung fehlgeschlagen ("
+            "Notification failed ("
             + type(exc).__name__
-            + "). SMTP-Zugang, Netzwerk und lokale Konfiguration prüfen.",
+            + "). Check SMTP credentials, network and local configuration.",
             flush=True,
         )
         raise SystemExit(1) from None

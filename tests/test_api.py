@@ -21,7 +21,7 @@ def test_known_bank(engine, import_file):
         assert data["bank_code_valid"] is True
         assert data["bank"]["bic"] == "TESTDEFFXXX"
         assert data["data"]["version"] == imported["version"]
-        assert data["data"]["source"] == "Quelle: Deutsche Bundesbank"
+        assert data["data"]["source"] == "Source: Deutsche Bundesbank"
         assert client.get("/health/ready").status_code == 200
 
 

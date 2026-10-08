@@ -9,24 +9,50 @@ from pathlib import Path
 from sqlalchemy.exc import SQLAlchemyError
 
 from openiban.bundesbank import SOURCE_URL
+from openiban.directories import SOURCES
+from openiban.directory_download import download_directory
+from openiban.directory_storage import (
+    activate_directory,
+    list_directory_versions,
+    stage_directory,
+)
 from openiban.storage import activate, build_engine, initialize, list_versions, stage_file
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(prog="openiban")
     commands = parser.add_subparsers(dest="command", required=True)
-    commands.add_parser("init-db", help="Initiales Datenbankschema anlegen")
-    importer = commands.add_parser("import-bundesbank", help="Öffentliche TXT prüfen und vormerken")
+    commands.add_parser("init-db", help="Create the initial database schema")
+    importer = commands.add_parser(
+        "import-bundesbank", help="Validate and stage the public TXT file"
+    )
     importer.add_argument("file", type=Path)
     importer.add_argument("--valid-from", type=date.fromisoformat, required=True)
     importer.add_argument("--valid-until", type=date.fromisoformat, required=True)
     importer.add_argument("--source-url", default=SOURCE_URL)
-    activator = commands.add_parser(
-        "activate", help="Geprüfte Version aktivieren oder zurücksetzen"
+    downloader = commands.add_parser("fetch-directory", help="Download an official directory")
+    downloader.add_argument("country", choices=sorted(SOURCES))
+    downloader.add_argument("file", type=Path)
+    downloader.add_argument("--source-url")
+    directory = commands.add_parser("import-directory", help="Validate and stage a directory")
+    directory.add_argument("country", choices=sorted(SOURCES))
+    directory.add_argument("file", type=Path)
+    directory.add_argument("--valid-from", type=date.fromisoformat, required=True)
+    directory.add_argument("--valid-until", type=date.fromisoformat, required=True)
+    directory.add_argument("--source-url", required=True)
+    country_activate = commands.add_parser(
+        "activate-directory", help="Activate a reviewed country dataset"
     )
+    country_activate.add_argument("country", choices=sorted(SOURCES))
+    country_activate.add_argument("version")
+    country_activate.add_argument("--review-note", required=True)
+    country_activate.add_argument("--allow-expired", action="store_true")
+    directory_versions = commands.add_parser("directory-versions")
+    directory_versions.add_argument("country", choices=sorted(SOURCES))
+    activator = commands.add_parser("activate", help="Activate a reviewed version or roll back")
     activator.add_argument("version")
     activator.add_argument("--allow-expired", action="store_true")
-    commands.add_parser("versions", help="Datenversionen anzeigen")
+    commands.add_parser("versions", help="List dataset versions")
     for name in ("auto-check", "auto-activate", "update-status"):
         command = commands.add_parser(name)
         command.add_argument(
@@ -46,6 +72,26 @@ def main() -> None:
             output = stage_file(
                 engine, args.file, args.valid_from, args.valid_until, args.source_url
             )
+        elif args.command == "fetch-directory":
+            content, source_url = download_directory(args.country, args.source_url)
+            with args.file.open("xb") as handle:
+                handle.write(content)
+            output = {"country": args.country, "file": str(args.file), "source_url": source_url}
+        elif args.command == "import-directory":
+            output = stage_directory(
+                engine, args.country, args.file, args.valid_from, args.valid_until, args.source_url
+            )
+        elif args.command == "activate-directory":
+            activate_directory(
+                engine,
+                args.country,
+                args.version,
+                review_note=args.review_note,
+                allow_expired=args.allow_expired,
+            )
+            output = {"status": "active", "country": args.country, "version": args.version}
+        elif args.command == "directory-versions":
+            output = list_directory_versions(engine, args.country)
         elif args.command == "activate":
             activate(engine, args.version, allow_expired=args.allow_expired)
             output = {"status": "active", "version": args.version}
@@ -63,16 +109,14 @@ def main() -> None:
         else:
             output = list_versions(engine)
     except (ValueError, OSError) as exc:
-        parser.exit(1, f"Fehler: {exc}\n")
+        parser.exit(1, f"Error: {exc}\n")
     except SQLAlchemyError:
-        parser.exit(
-            1, "Datenbankfehler. Verbindung prüfen und zuerst 'openiban init-db' ausführen.\n"
-        )
+        parser.exit(1, "Database error. Check the connection and run 'openiban init-db' first.\n")
     finally:
         engine.dispose()
     print(json.dumps(output, indent=2, ensure_ascii=False, default=str))
     if isinstance(output, dict) and output.get("warnings"):
-        parser.exit(2, "Updater-Warnung: Details siehe JSON-Ausgabe.\n")
+        parser.exit(2, "Updater warning: see JSON output for details.\n")
 
 
 if __name__ == "__main__":

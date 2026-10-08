@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-[[ $EUID -eq 0 ]] || { echo 'Bitte mit sudo bash ausführen.' >&2; exit 1; }
+[[ $EUID -eq 0 ]] || { echo 'Run using sudo bash.' >&2; exit 1; }
 package_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 app=/opt/openiban.eu
 [[ -x "$app/.venv/bin/python" && -f /var/lib/openiban/openiban.db ]]
@@ -20,7 +20,7 @@ for unit in openiban-update-check openiban-update-activate; do
     done
     systemctl stop "$unit.timer" "$unit.service" 2>/dev/null || true
 done
-echo "Sicherung der bisherigen Python-Umgebung: $backup_dir/venv"
+echo "Backup of the previous Python environment: $backup_dir/venv"
 "$app/.venv/bin/python" -m pip install --no-deps --no-index "$wheel"
 "$app/.venv/bin/python" -c 'from openiban.updater import auto_check; from openiban import __version__; assert __version__ == "0.2.0"'
 install -d -o openiban -g openiban -m 0750 /var/lib/openiban/updates
@@ -40,7 +40,7 @@ for attempt in range(15):
         time.sleep(1)
 PY
 then
-    echo "API-Start fehlgeschlagen. Timer bleiben aus. Sicherung: $backup_dir/venv" >&2
+    echo "API startup failed. Timers remain disabled. Backup: $backup_dir/venv" >&2
     exit 1
 fi
 for unit in openiban-update-check openiban-update-activate; do
@@ -49,9 +49,9 @@ for unit in openiban-update-check openiban-update-activate; do
 done
 systemctl daemon-reload
 if ! systemctl start openiban-update-check.service; then
-    echo 'Der erste Datenabruf meldet einen Fehler oder eine Warnung. Bitte Journal prüfen.' >&2
+    echo 'The initial download reported an error or warning. Check the journal.' >&2
     journalctl -u openiban-update-check.service -n 40 --no-pager
 fi
 systemctl enable --now openiban-update-check.timer openiban-update-activate.timer
 systemctl list-timers 'openiban-update-*' --no-pager
-echo 'Installation beendet. Details: deployment/auto-update/README.md'
+echo 'Installation complete. Details: deployment/auto-update/README.md'

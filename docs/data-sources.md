@@ -1,49 +1,52 @@
-# Datenquelle Deutschland
+# German data source
 
-Stand der Prüfung: 5. Oktober 2026.
+Review date: 5 October 2026.
 
-Die öffentliche Bankleitzahlendatei der Deutschen Bundesbank bildet die einzige
-Bankdatenquelle der ersten Version. Bei jeder Abfrage arbeitet die API mit dem
-lokalen aktiven Bestand; eingegebene IBANs werden nicht an die Bundesbank gesendet.
+The public bank-code file from Deutsche Bundesbank is the sole bank data source
+of the initial version. Every API lookup uses the local active dataset; submitted
+IBANs are never sent to the Bundesbank.
 
-## Offizielle Referenzen
+## Official references
 
-- [Download und Gültigkeit](https://www.bundesbank.de/de/aufgaben/unbarer-zahlungsverkehr/serviceangebot/bankleitzahlen/download-bankleitzahlen-602592)
-- [Merkblatt und Satzaufbau](https://www.bundesbank.de/de/startseite/merkblatt-bankleitzahlendatei-602848)
-- [Bankleitzahlen und BIC-Zuordnung](https://www.bundesbank.de/de/aufgaben/unbarer-zahlungsverkehr/serviceangebot/bankleitzahlen)
-- [Nutzungsbedingungen, insbesondere Abschnitt 4.1](https://www.bundesbank.de/de/startseite/benutzerhinweise/nutzungsbedingungen-fuer-den-allgemeinen-gebrauch-der-website-763554)
+- [Downloads and validity](https://www.bundesbank.de/de/aufgaben/unbarer-zahlungsverkehr/serviceangebot/bankleitzahlen/download-bankleitzahlen-602592)
+- [Guidance and record layout](https://www.bundesbank.de/de/startseite/merkblatt-bankleitzahlendatei-602848)
+- [Bank codes and BIC mappings](https://www.bundesbank.de/de/aufgaben/unbarer-zahlungsverkehr/serviceangebot/bankleitzahlen)
+- [Terms of use, especially section 4.1](https://www.bundesbank.de/de/startseite/benutzerhinweise/nutzungsbedingungen-fuer-den-allgemeinen-gebrauch-der-website-763554)
 
-## Verarbeitung
+## Processing
 
-Die erste Version verarbeitet die öffentliche TXT-Datei mit 168 Byte je Zeile
-und Latin-1-Zeichencodierung. Für die Bankzuordnung zählen nur Datensätze mit
-Merkmal 1. Änderungskennzeichen D bedeutet gelöscht; eine angekündigte Löschung
-allein deaktiviert eine BLZ noch nicht. Nachfolgekennungen werden nur als Hinweis
-ausgegeben; IBANs werden nicht automatisch umgeschrieben. Postleitzahl und Ort
-dienen der Identifikation, nicht als vollständige Postanschrift.
+The initial version processes the public TXT file with 168 bytes per row and
+Latin-1 encoding. Only records marked 1 are used for bank lookup. Change marker
+D means deleted; an announced deletion alone does not deactivate a bank code.
+Successor codes are returned only as hints; IBANs are never rewritten automatically.
+Postal codes and cities identify banks rather than providing complete postal addresses.
 
-Die Software speichert Quelldaten ohne redaktionelle Korrekturen. Lediglich
-Feldauffüllung, technische Typen und die Darstellung fehlender Angaben werden
-für die API umgesetzt. Der Import benötigt Gültigkeitsdaten vom Maintainer,
-weil der TXT-Inhalt diese nicht enthält. Er wird erst nach Prüfung aktiviert.
+The software stores source information without editorial corrections. Only field
+padding, technical types and representations of missing values are adapted for
+the API. Import requires validity dates from the maintainer because the TXT
+content does not contain them. Activation follows review.
 
-## Nutzungsbedingungen
+## Terms of use
 
-Abschnitt 4.1 erlaubt grundsätzlich persönliche und geschäftliche Speicherung,
-Weitergabe und Vervielfältigung der von der Bundesbank erstellten Informationen
-mit Quellenangabe. Er untersagt Änderung oder Verfälschung. Die Bankleitzahlenseite
-verweist auf die rechtlichen Hinweise; das Merkblatt beschreibt den Zweck für
-automatisierten Zahlungsverkehr.
+Section 4.1 generally permits personal and business storage, distribution and
+reproduction of Bundesbank-created information with attribution. It prohibits
+alteration or distortion. The bank-code page refers to the legal notices; the
+guidance describes the purpose for automated payment processing.
 
-Unsere erste technische Umsetzung erhält den Informationsgehalt und nennt
-`Quelle: Deutsche Bundesbank` in jeder Antwort mit Datenversion. Dies ist die
-Arbeitsgrundlage, keine individuelle rechtliche Freigabe der Bundesbank für
-OpenIBAN.eu. Vor einer späteren redaktionellen Community-Korrektur oder einem
-eigenen Datendownload sind deren Zulässigkeit und Kennzeichnung gesondert zu
-klären. Quelldateien werden im Repository nicht neu lizenziert oder mitgeliefert.
+Our initial implementation preserves the information and includes
+`Source: Deutsche Bundesbank` in every response with dataset metadata. This is
+our working basis, not individual legal approval from the Bundesbank for
+OpenIBAN.eu. Before introducing editorial community corrections or our own data
+downloads, their permissibility and labeling must be assessed separately.
+Source files are neither relicensed nor bundled in this repository.
 
-Bei der Entwicklung wurde die am 5. Oktober 2026 öffentlich angebotene Datei
-mit Gültigkeit 7. September bis 6. Dezember 2026 verwendet. Der Parser wurde
-gegen diese echte Datei sowie synthetische Fehlerfälle geprüft. Downloadlinks
-und Gültigkeitszeiträume dürfen bei künftigen Imports nicht ungeprüft wiederverwendet
-werden. Die regulären Aktualisierungen erfolgen vierteljährlich.
+Development used the publicly available file offered on 5 October 2026, valid
+from 7 September to 6 December 2026. The parser was checked against this real
+file and synthetic error cases. Future imports must not reuse download links
+or validity periods without verification. Regular updates are quarterly.
+
+## Additional European directories
+
+New adapters, source formats, terms of use, verification status and manual
+approval steps are documented in [European bank directories](european-directories.md).
+The original German import and update architecture is retained.
