@@ -167,7 +167,9 @@ def csv_rows(content: bytes, encoding: str = "utf-8-sig") -> list[list[str]]:
     return rows
 
 
-def spreadsheet_rows(content: bytes, legacy: bool = False) -> list[list]:
+def spreadsheet_rows(
+    content: bytes, legacy: bool = False, greek_metadata: bool = False
+) -> list[list]:
     try:
         if legacy:
             book = open_workbook(file_contents=content)
@@ -186,8 +188,19 @@ def spreadsheet_rows(content: bytes, legacy: bool = False) -> list[list]:
                 raise ValueError("Unexpected table structure.")
             rows = []
             for cells in sheets[0].iter_rows():
-                if any(c.data_type in {"f", "e"} for c in cells):
-                    raise ValueError("Formula or error cell in source file.")
+                for c in cells:
+                    # The Greek publisher uses formulas only for presentation.
+                    # Never evaluate them, and never allow them in mapping fields.
+                    allowed = (
+                        greek_metadata
+                        and c.data_type == "f"
+                        and (
+                            (c.coordinate == "D2" and c.value == "=NOW()")
+                            or (c.column == 1 and c.row >= 5 and c.value == f"=ROW(A{c.row - 4})")
+                        )
+                    )
+                    if c.data_type == "e" or (c.data_type == "f" and not allowed):
+                        raise ValueError("Formula or error cell in source file.")
                 rows.append([c.value for c in cells])
             return rows
         finally:
@@ -431,25 +444,35 @@ def parse_si(content: bytes) -> Directory:
 
 
 def parse_gr(content: bytes) -> Directory:
-    # Header-based adapter; activation additionally requires real-source review.
-    rows = spreadsheet_rows(content)
-    header = None
-    for index, row in enumerate(rows[:20]):
-        labels = [re.sub(r"\s+", " ", text(v)).lower() for v in row]
-        code = [i for i, v in enumerate(labels) if v in {"bank identifier", "bank identifiers"}]
-        bics = [i for i, v in enumerate(labels) if v in {"bic", "bic code"}]
-        names = [i for i, v in enumerate(labels) if v in {"bank", "bank name", "name", "psp"}]
-        if len(code) == len(bics) == len(names) == 1:
-            header = index, code[0], bics[0], names[0]
-            break
-    if header is None:
-        raise ValueError("Unknown Bank of Greece XLSX header; source review required.")
-    index, code, bics, names = header
+    rows = spreadsheet_rows(content, greek_metadata=True)
+    # The publisher leaves a formatted empty row after the note.
+    while rows and not any(rows[-1]):
+        rows.pop()
+    if (
+        len(rows) < 7
+        or rows[0] != [None, "BIC-from-IBAN derivation table", None, None]
+        or rows[1] != [None, None, "updated on:", "=NOW()"]
+        or any(rows[2])
+        or rows[3]
+        != [
+            "#",
+            "Payment Service Provider (PSP)",
+            "PSP identifiers used in IBAN (positions 5-7)",
+            "BIC",
+        ]
+        or any(rows[-2])
+        or rows[-1] != ["Note:", "Only PSP with BIC codes are included", None, None]
+    ):
+        raise ValueError("Unknown Bank of Greece XLSX structure; source review required.")
     records = []
-    for r in rows[index + 1 :]:
-        if not any(text(v) for v in r):
-            continue
-        records.append(Record(numeric(r[code], 3), text(r[names]), bic(r[bics])))
+    for number, r in enumerate(rows[4:-2], 1):
+        if r[0] not in (number, f"=ROW(A{number})") or isinstance(r[0], bool):
+            raise ValueError("Invalid Greek row number or incomplete table.")
+        value = bic(r[3])
+        if not value or value[4:6] != "GR":
+            raise ValueError("Greek PSP must have a Greek BIC.")
+        records.append(Record(numeric(r[2], 3), text(r[1]), value))
+    # NOW() changes when Excel recalculates: it is not a publication date.
     return Directory(records, len(records))
 
 

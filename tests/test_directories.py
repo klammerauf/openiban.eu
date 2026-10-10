@@ -128,7 +128,22 @@ def content(country):
         <tr><td rowspan="2">Synthetic Bank</td><td rowspan="2">Address</td>
         <td>TESTSI22</td><td>01</td></tr><tr><td>TESTSI22</td><td>02</td></tr>
         <tr><td>Other Bank</td><td>Address</td><td>/</td><td>91001</td></tr></table></html>"""
-    return xlsx([["Bank", "BIC", "Bank Identifier"], ["Synthetic Bank", "TESTGR22", "011"]])
+    return xlsx(
+        [
+            [None, "BIC-from-IBAN derivation table", None, None],
+            [None, None, "updated on:", "=NOW()"],
+            [None] * 4,
+            [
+                "#",
+                "Payment Service Provider (PSP)",
+                "PSP identifiers used in IBAN (positions 5-7)",
+                "BIC",
+            ],
+            ["=ROW(A1)", "Synthetic Bank", "011", "TESTGR22"],
+            [None] * 4,
+            ["Note:", "Only PSP with BIC codes are included", None, None],
+        ]
+    )
 
 
 @pytest.mark.parametrize("country", SOURCES)
@@ -505,3 +520,74 @@ def test_nl_publication_date_duplicates_and_country_format():
     book.save(out)
     with pytest.raises(ValueError):
         parse_directory("NL", out.getvalue())
+
+
+def test_gr_observed_metadata_and_numeric_codes():
+    from openpyxl import load_workbook
+
+    book = load_workbook(io.BytesIO(content("GR")))
+    book.active["A5"] = 1
+    book.active["C5"] = 10
+    out = io.BytesIO()
+    book.save(out)
+    parsed = parse_directory("GR", out.getvalue())
+    assert parsed.records[0].bank_code == "010"
+    assert parsed.records[0].bic == "TESTGR22"
+    assert parsed.total_rows == 1
+    assert parsed.published_on is None
+
+
+@pytest.mark.parametrize(
+    ("cell", "value"),
+    [
+        ("D5", "=NOW()"),
+        ("C5", "=ROW(A1)"),
+        ("B5", '=HYPERLINK("https://example.com")'),
+        ("A5", "=ROW(A2)"),
+        ("D2", "=TODAY()"),
+        ("D5", "TESTBE22"),
+        ("D5", "N/A"),
+        ("B5", ""),
+        ("C4", "Bank Identifier"),
+        ("B7", "Unexpected footer"),
+        ("B6", "Unexpected data"),
+    ],
+)
+def test_gr_rejects_schema_changes_and_mapping_formulas(cell, value):
+    from openpyxl import load_workbook
+
+    book = load_workbook(io.BytesIO(content("GR")))
+    book.active[cell] = value
+    out = io.BytesIO()
+    book.save(out)
+    with pytest.raises(ValueError):
+        parse_directory("GR", out.getvalue())
+
+
+def test_gr_rejects_duplicate_codes_and_internal_gaps():
+    from openpyxl import load_workbook
+
+    for row in ([2, "Other Bank", 11, "OTHRGR22"], [None] * 4):
+        book = load_workbook(io.BytesIO(content("GR")))
+        book.active.insert_rows(6)
+        for column, value in enumerate(row, 1):
+            book.active.cell(6, column, value)
+        out = io.BytesIO()
+        book.save(out)
+        with pytest.raises(ValueError):
+            parse_directory("GR", out.getvalue())
+
+
+def test_gr_trailing_formatted_row_and_formula_isolation():
+    from openpyxl import load_workbook
+
+    from openiban.directories import spreadsheet_rows
+
+    book = load_workbook(io.BytesIO(content("GR")))
+    book.active.cell(8, 1).number_format = "0"
+    out = io.BytesIO()
+    book.save(out)
+    assert parse_directory("GR", out.getvalue()).total_rows == 1
+    # Other countries retain the default prohibition on all formulas.
+    with pytest.raises(ValueError, match="Formula"):
+        spreadsheet_rows(out.getvalue())

@@ -2,10 +2,10 @@
 
 Source review date: 8 October 2026. This implementation has not been deployed to
 the public service. Germany retains its existing importer and automatic updater.
-Nine additional adapters are included. Greece is **provisional** because the
-original download returns HTTP 403 in the development environment. Its XLSX
-header and a complete real file must still be verified before approval.
-Synthetic tests do not replace that verification.
+Nine additional adapters are included. The Greek original workbook was verified
+on 10 October 2026 through a browser download (25 mappings). Direct automated
+downloads still encounter HTTP 403. See [Greek source review](greece-source-review.md)
+for the observed schema, metadata formulas and usage conditions.
 
 ## Sources, formats and identifiers
 
@@ -20,7 +20,7 @@ Positions are one-based and refer to the normalized IBAN.
 | CZ | [Czech National Bank](https://www.cnb.cz/cs/platebni-styk/ucty-kody-bank/) | UTF-8 CSV with BOM, semicolon | 5–8, four-digit payment system code | On changes; list valid from 1 October 2026, 47 records verified |
 | LV | [Latvijas Banka](https://www.bank.lv/en/operational-areas/payment-systems/identification-of-bic-by-iban) | Linked English XLS file | 5–8, four letters | On changes; 20 records verified |
 | SI | [Banka Slovenije](https://www.bsi.si/sl/placilni-sistemi/placilni-in-transakcijski-racun) | UTF-8 HTML table | Exact 5–9, otherwise 5–6 as bank prefix | On changes; 18 identifiers verified, including `rowspan` and missing BIC |
-| GR | [Bank of Greece SEPA](https://www.bankofgreece.gr/en/main-tasks/payment-systems-and-settlements/sepa) | Linked XLSX file | 5–7, three-digit Bank Identifier | **Original file not verified**, download HTTP 403; provisional header adapter |
+| GR | [Bank of Greece SEPA](https://www.bankofgreece.gr/en/main-tasks/payment-systems-and-settlements/sepa) | Linked XLSX file | 5–7, three-digit Bank Identifier | 25 mappings verified on 10 October 2026; direct download HTTP 403, browser works |
 
 IBAN lengths and BBAN formats follow the
 [SWIFT IBAN Registry](https://www.swift.com/swift-resource/9606/download?language=en).
@@ -55,11 +55,11 @@ Latvian components. The CH adapter does not automatically support Liechtenstein.
   uses the exact five-digit identifier, then the two-digit bank prefix. This
   distinguishes payment institutions with their own five-digit identifiers.
   Merged name/address cells are resolved through `rowspan`.
-- **GR:** Provisional XLSX detection uses unambiguous columns
-  `Bank`/`Bank Name`/`Name`/`PSP`, `BIC`/`BIC Code`, and
-  `Bank Identifier`/`Bank Identifiers`. Unknown headers fail rather than guessing
-  data. Verify against a real original file and adjust the adapter and regression
-  test if needed before approval.
+- **GR:** The observed four-column workbook is parsed strictly, including its
+  title and footer. Only the publisher's exact row-number formulas in column A
+  and `=NOW()` in D2 are permitted; none are evaluated. Mapping fields cannot
+  contain formulas. Three-digit identifiers retain leading zeros. The dynamic
+  date is not treated as a publication date. See [source review](greece-source-review.md).
 
 ## Terms of use and approval status
 
@@ -78,12 +78,13 @@ a dataset identifies its publisher and source URL.
 | CZ | [CNB website terms](https://www.cnb.cz/en/privacy-statement-and-disclaimer/disclaimer-copyright/) permit storage, distribution and reproduction of its own information with attribution; information must not be distorted. | Technical normalization with unchanged information; no editorial corrections. |
 | LV | [Use of data](https://www.bank.lv/en/statistics/information-for-data-users/use-of-data) permits statistical reuse with attribution and unchanged data, with a free-availability notice where applicable. | This rule covers statistics. Its applicability to the payment directory is unconfirmed; clarify before public activation. |
 | SI | [Terms of use](https://www.bsi.si/sl/pogoji-uporabe) permit storage, reproduction and distribution with attribution and unchanged data; special rules apply to advertising and paid content. | Non-commercial service with attribution; commercial/advertising use requires separate review. |
-| GR | [Terms of use](https://www.bankofgreece.gr/en/useful-links/terms-of-use) could not be retrieved here. | Usage and the original schema are not fully verified. A CC-BY rule from the separate open-data portal is not applied to this file. |
+| GR | [Terms of use](https://www.bankofgreece.gr/en/useful-links/terms-of-use) permit accurate reproduction with Bank of Greece attribution; sale and/or modification require prior written consent. | Schema verified. Keep names, codes and BICs accurate, cite the publisher; resolve permission for sale or modifications before those uses. No CC-BY license is inferred. |
 
 This is a documented technical source review, not legal approval.
 `activate-directory` requires a recorded review note. For PL, LV and GR, that
-review must specifically address the outstanding usage questions. GR additionally
-requires successful verification against an original directory. A successful
+review must specifically address applicable usage conditions. The original Greek
+directory has now been verified; its terms and freshness still require review
+for the intended public use. A successful
 parser run or an arbitrary review note does not establish a license.
 
 ## Maintainer workflow
@@ -120,7 +121,8 @@ files; it is not a signature.
 Download validates the native format and does not overwrite existing files.
 Redirects stay on configured official HTTPS hosts. Downloads have a 30-second
 socket timeout and a 20 MiB size limit. XLSX decompression is limited to 100 MiB;
-XML entities, formulas and error cells are rejected. Known table structures,
+XML entities, mapping formulas and error cells are rejected; only the exact
+Greek presentation formulas documented above are allowed without evaluation. Known table structures,
 identifier formats, BIC syntax and identifier uniqueness are checked. Parsing
 failure writes no version and activates nothing.
 
@@ -159,13 +161,14 @@ Tests: `ruff check .`, `ruff format --check .`, `pytest -q` with the updated
 formats, leading zeros, Polish units, Slovenian identifiers/rowspans, missing
 BICs, reserved codes, Swiss concatenation/QR-IIDs, damaged files, size limits,
 provenance, schema extension, country isolation, CLI, activation, rollback,
-MOD-97 and API lookup. GR is covered only by synthetic tests.
+MOD-97 and API lookup. Greek offline fixtures reproduce the observed schema
+with synthetic data; separate live verification parsed the original workbook.
 
 The seven reachable original sources were downloaded separately on 8 October
 2026 and processed by the adapters. Original files reside outside the repository.
 Live verification is deliberately separate from CI: sources/WAFs must not affect
-the offline suite. Original-source verification for GR remains outstanding before
-merge/release; the usage questions above also remain outstanding before public activation.
+the offline suite. GR was verified separately on 10 October 2026. Usage conditions
+and the remaining questions above must be reviewed before public activation.
 
 
 ## Netherlands: provisional industry source

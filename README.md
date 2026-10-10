@@ -1,7 +1,7 @@
 # OpenIBAN.eu
 
 Independent, non-commercial project for IBAN validation and bank data lookup for
-DE, CH, PL, LT, BE, CZ, LV, SI, GR and NL (GR importer provisional). The API uses
+DE, CH, PL, LT, BE, CZ, LV, SI, GR and NL. The API uses
 FastAPI, versioned Bundesbank data and automatic updates. No ERP dependency.
 
 ## Use the public service without installing it
