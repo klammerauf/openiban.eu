@@ -38,3 +38,19 @@ def validate_german_iban(raw: str) -> Validation:
     return Validation(
         normalized, True, True, valid, valid, "valid" if valid else "invalid_checksum"
     )
+
+
+def validate_iban(raw: str) -> Validation:
+    """DE and PL country format plus MOD-97; no domestic account verification."""
+    compact = "".join(raw.split())
+    if not compact.isascii() or not compact.upper().startswith("PL"):
+        return validate_german_iban(raw)
+    normalized = compact.upper()
+    if not re.fullmatch(r"PL[0-9]{26}", normalized):
+        return Validation(normalized, True, False, None, False, "invalid_format")
+    # PL -> P=25, L=21. Reject noncanonical check digits 00, 01 and 99.
+    digits = normalized[4:] + "2521" + normalized[2:4]
+    valid = 2 <= int(normalized[2:4]) <= 98 and int(digits) % 97 == 1
+    return Validation(
+        normalized, True, True, valid, valid, "valid" if valid else "invalid_checksum"
+    )

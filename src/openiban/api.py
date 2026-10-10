@@ -12,8 +12,9 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 
 from openiban import __version__
+from openiban.nbp import ENDPOINT, NBPClient, NBPUnavailable
 from openiban.storage import build_engine, lookup
-from openiban.validation import validate_german_iban
+from openiban.validation import validate_iban
 
 
 class ValidationRequest(BaseModel):
@@ -48,6 +49,7 @@ class BankInfo(BaseModel):
     postal_code: str
     city: str
     bic: str | None
+    bic_sepa: str | None = None
     deletion_announced: bool
     successor_bank_code: str | None
 
@@ -56,7 +58,7 @@ class ValidationResponse(BaseModel):
     normalized_iban: str
     country_supported: bool
     iban_valid: bool | None = Field(
-        description="German format and IBAN checksum only; does not verify account existence."
+        description="Country format and IBAN checksum only; does not verify account existence."
     )
     reason: Literal[
         "valid", "invalid_characters", "invalid_format", "invalid_checksum", "unsupported_country"
@@ -66,10 +68,14 @@ class ValidationResponse(BaseModel):
         "not_checked", "unavailable", "stale", "found", "not_found", "deleted"
     ]
     bank_code_valid: bool | None = Field(
-        description="Bank code in the current active dataset; null means not verifiable."
+        description=(
+            "Bank code in the active dataset or live official directory; null means not verifiable."
+        )
     )
     bank: BankInfo | None = None
     data: DatasetInfo | None = None
+    lookup_source: str | None = None
+    lookup_source_url: str | None = None
 
 
 class RequestBoundary:
@@ -119,7 +125,9 @@ class RequestBoundary:
         await self.app(scope, bounded_receive, no_cache)
 
 
-def create_app(engine: Engine | None = None) -> FastAPI:
+def create_app(engine: Engine | None = None, nbp_client: NBPClient | None = None) -> FastAPI:
+    nbp = nbp_client if nbp_client is not None else NBPClient()
+
     @asynccontextmanager
     async def lifespan(app):
         app.state.engine = engine if engine is not None else build_engine()
@@ -132,7 +140,7 @@ def create_app(engine: Engine | None = None) -> FastAPI:
         version=__version__,
         lifespan=lifespan,
         description=(
-            "German IBANs: format, MOD-97 and bank data from the Bundesbank file. "
+            "DE/PL IBANs: format, MOD-97, Bundesbank data and live NBP EWIB lookup. "
             "Does not verify account existence, account holders or domestic account checksums."
         ),
     )
@@ -163,7 +171,12 @@ def create_app(engine: Engine | None = None) -> FastAPI:
 
     @app.get("/v1/countries", tags=["IBAN"])
     def countries():
-        return {"countries": [{"code": "DE", "iban_length": 22, "bank_lookup_supported": True}]}
+        return {
+            "countries": [
+                {"code": "DE", "iban_length": 22, "bank_lookup_supported": True},
+                {"code": "PL", "iban_length": 28, "bank_lookup_supported": True},
+            ]
+        }
 
     @app.post(
         "/v1/validate",
@@ -172,7 +185,7 @@ def create_app(engine: Engine | None = None) -> FastAPI:
         responses={413: {"description": "Request too large"}},
     )
     def validate(payload: ValidationRequest, request: Request):
-        result = validate_german_iban(payload.iban)
+        result = validate_iban(payload.iban)
         response = ValidationResponse(
             normalized_iban=result.normalized,
             country_supported=result.country_supported,
@@ -183,6 +196,19 @@ def create_app(engine: Engine | None = None) -> FastAPI:
             bank_code_valid=None,
         )
         if not result.iban_valid:
+            return response
+        if result.normalized.startswith("PL"):
+            response.lookup_source = "Source: Narodowy Bank Polski (EWIB 2.0)"
+            response.lookup_source_url = ENDPOINT
+            try:
+                bank = nbp.lookup(result.normalized[4:12])
+            except NBPUnavailable:
+                response.bank_lookup_status = "unavailable"
+                return response
+            response.bank_lookup_status = "found" if bank is not None else "not_found"
+            response.bank_code_valid = bank is not None
+            if bank is not None:
+                response.bank = BankInfo(**bank)
             return response
         try:
             info, bank = lookup(request.app.state.engine, result.normalized[4:12])
