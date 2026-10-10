@@ -1,4 +1,4 @@
-"""Bounded downloads from the configured official publishers only."""
+"""Bounded downloads from the configured publishers only."""
 
 from urllib.error import HTTPError, URLError
 from urllib.parse import urljoin, urlsplit
@@ -22,7 +22,7 @@ def validate_url(country: str, url: str) -> str:
         or parsed.fragment
         or len(url) > 1000
     ):
-        raise ValueError("Source URL must use the official publisher's HTTPS host.")
+        raise ValueError("Source URL must use the configured publisher's HTTPS host.")
     return url
 
 
@@ -48,7 +48,7 @@ def fetch(country: str, url: str) -> bytes:
             content = response.read(MAX_BYTES + 1)
     except (HTTPError, URLError, TimeoutError) as exc:
         raise ValueError(
-            "Official source is unreachable; active dataset remains unchanged."
+            "Configured source is unreachable; active dataset remains unchanged."
         ) from exc
     if not content or len(content) > MAX_BYTES:
         raise ValueError("Download is empty or exceeds 20 MiB.")

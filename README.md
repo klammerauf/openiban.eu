@@ -1,7 +1,7 @@
 # OpenIBAN.eu
 
 Independent, non-commercial project for IBAN validation and bank data lookup for
-DE, CH, PL, LT, BE, CZ, LV, SI and GR (GR importer provisional). The API uses
+DE, CH, PL, LT, BE, CZ, LV, SI, GR and NL (GR importer provisional). The API uses
 FastAPI, versioned Bundesbank data and automatic updates. No ERP dependency.
 
 ## Use the public service without installing it
@@ -35,7 +35,7 @@ below are intended for development and self-hosting.
 
 ## Features
 
-- IBANs from the nine listed countries: remove spaces, uppercase ASCII letters,
+- IBANs from the ten listed countries: remove spaces, uppercase ASCII letters,
   validate country format/length and MOD-97.
 - Return bank name, BIC, BLZ, postal code and city from the active Bundesbank dataset.
 - Distinguish unknown/deleted bank codes, missing data and expired data.

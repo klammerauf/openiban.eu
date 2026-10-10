@@ -2,7 +2,7 @@
 
 Source review date: 8 October 2026. This implementation has not been deployed to
 the public service. Germany retains its existing importer and automatic updater.
-Eight additional adapters are included. Greece is **provisional** because the
+Nine additional adapters are included. Greece is **provisional** because the
 original download returns HTTP 403 in the development environment. Its XLSX
 header and a complete real file must still be verified before approval.
 Synthetic tests do not replace that verification.
@@ -146,7 +146,7 @@ German automatic updates remain unchanged.
 
 ## API and operations
 
-`GET /v1/countries` lists the nine supported IBAN formats. The field
+`GET /v1/countries` lists the ten supported IBAN formats. The field
 `bank_lookup_supported` indicates an available lookup implementation, not
 currently imported bank data or final source approval. Without an activated
 current country version, lookup reports `unavailable` or `stale`.
@@ -166,3 +166,44 @@ The seven reachable original sources were downloaded separately on 8 October
 Live verification is deliberately separate from CI: sources/WAFs must not affect
 the offline suite. Original-source verification for GR remains outstanding before
 merge/release; the usage questions above also remain outstanding before public activation.
+
+
+## Netherlands: provisional industry source
+
+Added on 10 October 2026. Betaalvereniging Nederland is an industry association,
+not a central-bank source. The user-selected [BIC list workbook](https://www.betaalvereniging.nl/wp-content/uploads/2025/11/BIC-lijst-NL.xlsx)
+was retrieved and parsed successfully: 96 identifiers, dated 2 September 2026
+inside the workbook. The URL directory date is not the publication date.
+The [publisher's IBAN/BIC page](https://www.betaalvereniging.nl/kennisbank/iban-en-bic/)
+provides context. Original data is not bundled in this repository.
+
+NL IBANs have 18 characters: a four-letter identifier at positions 5–8 followed
+by ten account digits. Validation checks country format and MOD-97, not account
+existence. The XLSX adapter requires the observed bilingual title, publication
+date and three-column header. It preserves provider names and BICs, verifies
+identifier/BIC agreement and country NL, and rejects duplicates, missing cells,
+formulas and unexpected schemas. Existing size and XML protections apply.
+The source publication date must not follow the import validity start date.
+No automatic activation is added. Missing codes are lookup misses, not proof
+that an account does not exist or that the source covers every provider.
+
+The [website disclaimer](https://www.betaalvereniging.nl/disclaimer/) grants
+limited personal non-commercial access and restricts copying, adaptation,
+publication and distribution without prior written permission, subject to legal
+exceptions. Public availability does not establish permission for public API
+redistribution. No file-specific redistribution permission has been established.
+Clarify and document applicable permission before public activation; retain the
+provisional source attribution. Technical import tests do not resolve usage rights.
+
+```bash
+openiban fetch-directory NL data/nl.xlsx
+openiban import-directory NL data/nl.xlsx \
+  --source-url https://www.betaalvereniging.nl/wp-content/uploads/2025/11/BIC-lijst-NL.xlsx \
+  --valid-from 2026-10-10 --valid-until 2026-11-10
+openiban directory-versions NL
+```
+
+The validity interval above is a maintainer-selected example. Review freshness,
+record counts, changes and usage permission before any activation. Use
+`activate-directory NL VERSION --review-note 'Documented review and permission'`
+only after that review. This implementation does not deploy or activate NL.

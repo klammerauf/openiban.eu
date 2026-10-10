@@ -1,11 +1,13 @@
-"""Official European directory adapters. Parsing never activates a dataset."""
+"""European directory adapters with explicitly configured publishers.
+
+Parsing never activates a dataset."""
 
 import csv
 import io
 import json
 import re
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from xml.etree.ElementTree import ParseError
 from zipfile import BadZipFile, ZipFile
 
@@ -31,6 +33,14 @@ class Source:
 
 
 SOURCES = {
+    "NL": Source(
+        "Betaalvereniging Nederland (provisional industry source)",
+        "https://www.betaalvereniging.nl/kennisbank/iban-en-bic/",
+        "https://www.betaalvereniging.nl/wp-content/uploads/2025/11/BIC-lijst-NL.xlsx",
+        ("www.betaalvereniging.nl",),
+        "xlsx",
+        r"[A-Z]{4}",
+    ),
     "CH": Source(
         "SIX",
         "https://www.six-group.com/de/products-services/banking-services/"
@@ -443,7 +453,39 @@ def parse_gr(content: bytes) -> Directory:
     return Directory(records, len(records))
 
 
+def parse_nl(content: bytes) -> Directory:
+    rows = spreadsheet_rows(content)
+    title = text(rows[0][0])
+    match = re.fullmatch(
+        r"BIC-lijst-NL \| BIC-list-NL \(Laatste update \| last update "
+        r"([0-9]{2}-[0-9]{2}-[0-9]{4})\)",
+        title,
+    )
+    if not match or any(text(v) for v in rows[0][1:]):
+        raise ValueError("Unknown Dutch BIC list title or publication date.")
+
+    published_on = datetime.strptime(match[1], "%d-%m-%Y").date()
+    if [text(v) for v in rows[1]] != [
+        "BIC",
+        "Identifier",
+        "Betaaldienstverlener / Payment Service Provider",
+    ]:
+        raise ValueError("Unknown Dutch BIC list header.")
+    records = []
+    for row in rows[2:]:
+        if len(row) != 3 or not all(text(v) for v in row):
+            raise ValueError("Incomplete Dutch BIC list row.")
+        bank_bic, identifier, name = bic(row[0]), text(row[1]), text(row[2])
+        if not re.fullmatch(r"[A-Z]{4}", identifier) or bank_bic[:4] != identifier:
+            raise ValueError("Conflicting Dutch bank identifier and BIC.")
+        if bank_bic[4:6] != "NL":
+            raise ValueError("Dutch BIC must use country code NL.")
+        records.append(Record(identifier, name, bank_bic))
+    return Directory(records, len(records), published_on=published_on)
+
+
 PARSERS = {
+    "NL": parse_nl,
     "CH": parse_ch,
     "PL": parse_pl,
     "LT": parse_lt,

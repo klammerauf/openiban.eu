@@ -54,6 +54,18 @@ BE_HEADER = [
 
 
 def content(country):
+    if country == "NL":
+        return xlsx(
+            [
+                [
+                    "BIC-lijst-NL | BIC-list-NL (Laatste update | last update "
+                    + today().strftime("%d-%m-%Y")
+                    + ")"
+                ],
+                ["BIC", "Identifier", "Betaaldienstverlener / Payment Service Provider "],
+                ["TESTNL22", "TEST", "Synthetic Bank"],
+            ]
+        )
     if country == "CH":
         return (
             CH_HEADER + f"100;{today()};N;;001008;100;1;;Synthetic Bank;Street;1;8000;"
@@ -299,6 +311,7 @@ def iban(country, bban):
 
 
 EXAMPLES = {
+    "NL": "TEST" + "0" * 10,
     "CH": "00100" + "0" * 12,
     "PL": "10100000" + "0" * 16,
     "LT": "10100" + "0" * 11,
@@ -457,3 +470,38 @@ def test_truncated_workbook_xml_fails_cleanly():
             )
     with pytest.raises(ValueError):
         parse_directory("GR", output.getvalue())
+
+
+@pytest.mark.parametrize(
+    "row",
+    [
+        ["TESTNL22", "OTHER", "Synthetic Bank"],
+        ["TESTBE22", "TEST", "Synthetic Bank"],
+        ["TESTNL22", "TEST", ""],
+        ["TESTNL22", "TEST", "=1+1"],
+    ],
+)
+def test_nl_rejects_invalid_mappings_and_formulas(row):
+    from openpyxl import load_workbook
+
+    book = load_workbook(io.BytesIO(content("NL")))
+    for column, value in enumerate(row, 1):
+        book.active.cell(3, column, value)
+    out = io.BytesIO()
+    book.save(out)
+    with pytest.raises(ValueError):
+        parse_directory("NL", out.getvalue())
+
+
+def test_nl_publication_date_duplicates_and_country_format():
+    from openpyxl import load_workbook
+
+    assert parse_directory("NL", content("NL")).published_on == today()
+    assert not validate_iban(iban("NL", "1234" + "0" * 10)).iban_valid
+    assert not validate_iban(iban("NL", "TEST" + "A" + "0" * 9)).iban_valid
+    book = load_workbook(io.BytesIO(content("NL")))
+    book.active.append(["TESTNL22", "TEST", "Duplicate Bank"])
+    out = io.BytesIO()
+    book.save(out)
+    with pytest.raises(ValueError):
+        parse_directory("NL", out.getvalue())
