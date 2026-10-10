@@ -2,9 +2,10 @@
 
 Review date: 5 October 2026.
 
-The public bank-code file from Deutsche Bundesbank is the sole bank data source
-of the initial version. Every API lookup uses the local active dataset; submitted
-IBANs are never sent to the Bundesbank.
+The public bank-code file from Deutsche Bundesbank is the German bank data source
+of the initial version. German API lookups use the local active dataset; submitted
+IBANs are never sent to the Bundesbank. Polish bank lookups use the direct
+[NBP EWIB adapter](poland-nbp.md), transmitting only the clearing code.
 
 ## Official references
 

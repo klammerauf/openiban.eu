@@ -184,3 +184,15 @@ SMTP credentials and recipients are configured exclusively on the server.
 Daily downloads, quality checks and activation from the validity start date are
 available through the local maintainer CLI and systemd timers. Installation,
 thresholds, monitoring and rollback: [deployment/auto-update/README.md](deployment/auto-update/README.md).
+
+## Poland: direct official lookup
+
+`POST /v1/validate` also supports Polish IBANs (28 characters, numeric BBAN,
+MOD-97). Valid Polish IBANs use the official NBP EWIB 2.0 API directly, sending
+only the eight-digit clearing code. Bank name, BIC and optional `bank.bic_sepa`
+are returned. Upstream errors preserve the IBAN check and return bank lookup
+`unavailable`. German bank lookups continue to use the local Bundesbank dataset.
+
+See [verified NBP response, error handling, privacy and usage-rights review](docs/poland-nbp.md).
+Public accessibility is not treated as an open-data license. This implementation
+does not establish that the hosted service has been upgraded or deployed.
