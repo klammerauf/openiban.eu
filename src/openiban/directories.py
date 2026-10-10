@@ -259,12 +259,16 @@ def parse_ch(content: bytes) -> Directory:
         elif r[2] == "N" and r[6] in {"1", "2", "4"}:
             numeric(r[4], 6)
             numeric(r[5], 5)
+            if not re.fullmatch(r"[A-Z]{2}", r[13]):
+                raise ValueError("Invalid SIX institution country.")
             if r[3] or any(v not in {"Y", "N"} for v in r[15:]):
                 raise ValueError("Invalid SIX status fields.")
             if r[6] == "4":
                 numeric(r[7], 5)
                 if not 30000 <= int(code) <= 31999:
                     raise ValueError("QR-IID outside the allowed range.")
+            elif r[7] or 30000 <= int(code) <= 31999:
+                raise ValueError("QR-IID allocation or range conflicts with IID type.")
             records.append(Record(code, r[8], bic(r[14]), r[11], r[12]))
         else:
             raise ValueError("Unknown IID status.")

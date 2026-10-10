@@ -591,3 +591,35 @@ def test_gr_trailing_formatted_row_and_formula_isolation():
     # Other countries retain the default prohibition on all formulas.
     with pytest.raises(ValueError, match="Formula"):
         spreadsheet_rows(out.getvalue())
+
+
+@pytest.mark.parametrize(
+    ("field", "value"), [(13, ""), (13, "CHE"), (13, "ch"), (7, "100"), (0, "30000")]
+)
+def test_six_rejects_country_and_qr_type_conflicts(field, value):
+    rows = content("CH").decode().splitlines()
+    row = rows[1].split(";")
+    row[field] = value
+    with pytest.raises(ValueError):
+        parse_directory("CH", (rows[0] + "\r\n" + ";".join(row) + "\r\n").encode())
+
+
+def test_six_foreign_bic_and_missing_bic_are_preserved():
+    parsed = parse_directory("CH", content("CH").replace(b"CH;TESTCH22XXX", b"LI;TESTLI22XXX"))
+    assert parsed.records[0].bic == "TESTLI22XXX"
+    parsed = parse_directory("CH", content("CH").replace(b"TESTCH22XXX", b""))
+    assert parsed.records[0].bic is None
+
+
+def test_six_future_snapshot_cannot_activate(engine, tmp_path):
+    start = today() + timedelta(days=2)
+    path = tmp_path / "ch-future.csv"
+    path.write_bytes(content("CH").replace(str(today()).encode(), str(start).encode()))
+    with pytest.raises(ValueError, match="official source date"):
+        stage_directory(engine, "CH", path, today(), start, SOURCES["CH"].download)
+    result = stage_directory(
+        engine, "CH", path, start, start + timedelta(days=7), SOURCES["CH"].download
+    )
+    with pytest.raises(ValueError, match="not yet valid"):
+        activate_directory(engine, "CH", result["version"], review_note="Source reviewed")
+    assert lookup_directory(engine, "CH", "00100") == (None, None)

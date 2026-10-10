@@ -13,7 +13,7 @@ Positions are one-based and refer to the normalized IBAN.
 
 | Country | Official source | Import format | IBAN identifier | Updates / original-source verification |
 |---|---|---|---|---|
-| CH | [SIX Swiss Bank Master v3](https://www.six-group.com/de/products-services/banking-services/interbank-clearing/online-services/download-bank-master.html) | UTF-8 CSV, semicolon | 5–9, five-digit IID/QR-IID | Daily; 1,164 records on 8 October 2026, including 26 concatenated IIDs |
+| CH | [SIX Swiss Bank Master v3](https://www.six-group.com/de/products-services/banking-services/interbank-clearing/online-services/download-bank-master.html) | UTF-8 CSV, semicolon | 5–9, five-digit IID/QR-IID | Daily; 1,164 records verified 10 October 2026, effective 12 October; 26 concatenated IIDs |
 | PL | [NBP EWIB 2.0](https://ewib.nbp.pl/faces/pages/faq.xhtml) | JSON, `listaWlascicieli` | 5–12, eight-digit clearing code | On changes; complete API response with 3,141 clearing codes verified |
 | LT | [Bank of Lithuania](https://www.lb.lt/en/iban-and-financial-institution-codes) | English CSV export, Windows-1257, semicolon | 5–9, five-digit National ID | On changes; export dated 5 May 2026 with 229 records verified |
 | BE | [National Bank of Belgium](https://www.nbb.be/en/payments-and-securities/bank-identification-codes) | Complete XLSX list | 5–7, three-digit code | On changes; version 1 September 2026, 782 assigned codes, 218 free/unavailable codes excluded |
@@ -210,3 +210,10 @@ The validity interval above is a maintainer-selected example. Review freshness,
 record counts, changes and usage permission before any activation. Use
 `activate-directory NL VERSION --review-note 'Documented review and permission'`
 only after that review. This implementation does not deploy or activate NL.
+
+
+## Switzerland: current verification
+
+See [Swiss source review](switzerland-source-review.md) for the 10 October 2026
+original-file checks, complete columns, QR-IIDs, foreign institutions, future
+validity safeguards and the specific SIX free-use statement.
