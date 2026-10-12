@@ -1,7 +1,7 @@
 # OpenIBAN.eu
 
 Independent, non-commercial project for IBAN validation and bank data lookup for
-DE, CH, PL, LT, BE, CZ, LV, SI, GR and NL. The API uses
+DE, ES, CH, PL, LT, BE, CZ, LV, SI, GR and NL. The API uses
 FastAPI, versioned Bundesbank data and automatic updates. No ERP dependency.
 
 ## Use the public service without installing it
@@ -35,7 +35,7 @@ below are intended for development and self-hosting.
 
 ## Features
 
-- IBANs from the ten listed countries: remove spaces, uppercase ASCII letters,
+- IBANs from the eleven listed countries: remove spaces, uppercase ASCII letters,
   validate country format/length and MOD-97.
 - Return bank name, BIC, BLZ, postal code and city from the active Bundesbank dataset.
 - Distinguish unknown/deleted bank codes, missing data and expired data.
@@ -49,6 +49,10 @@ The bank-code status is reported separately in `bank_code_valid`.
 Other countries return `reason: unsupported_country` and `iban_valid: null`.
 The new importers are not automatically activated on the public service.
 Source review, instructions and outstanding approvals: [European directories](docs/european-directories.md).
+
+Spain uses a separate reviewed country dataset with four-digit entity codes.
+The BdE CSV has no BICs; only credit institutions enter the lookup. See the
+[Spanish source review and migration procedure](docs/spain-source-review.md).
 
 ## Run locally (Python 3.12)
 

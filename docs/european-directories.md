@@ -2,7 +2,7 @@
 
 Source review date: 8 October 2026. This implementation has not been deployed to
 the public service. Germany retains its existing importer and automatic updater.
-Nine additional adapters are included. The Greek original workbook was verified
+Ten additional adapters are included. The Greek original workbook was verified
 on 10 October 2026 through a browser download (25 mappings). Direct automated
 downloads still encounter HTTP 403. See [Greek source review](greece-source-review.md)
 for the observed schema, metadata formulas and usage conditions.
@@ -13,6 +13,7 @@ Positions are one-based and refer to the normalized IBAN.
 
 | Country | Official source | Import format | IBAN identifier | Updates / original-source verification |
 |---|---|---|---|---|
+| ES | [Banco de España](spain-source-review.md) | UTF-8/BOM CSV, comma | 5–8, four-digit supervisor/entity code | Attachment verified 12 October 2026: 184 credit institutions, 58 excluded rows, no BIC column |
 | CH | [SIX Swiss Bank Master v3](https://www.six-group.com/de/products-services/banking-services/interbank-clearing/online-services/download-bank-master.html) | UTF-8 CSV, semicolon | 5–9, five-digit IID/QR-IID | Daily; 1,164 records verified 10 October 2026, effective 12 October; 26 concatenated IIDs |
 | PL | [NBP EWIB 2.0](https://ewib.nbp.pl/faces/pages/faq.xhtml) | JSON, `listaWlascicieli` | 5–12, eight-digit clearing code | On changes; complete API response with 3,141 clearing codes verified |
 | LT | [Bank of Lithuania](https://www.lb.lt/en/iban-and-financial-institution-codes) | English CSV export, Windows-1257, semicolon | 5–9, five-digit National ID | On changes; export dated 5 May 2026 with 229 records verified |
@@ -27,6 +28,8 @@ IBAN lengths and BBAN formats follow the
 Validation covers format and MOD-97, excluding domestic account checksum
 algorithms. Greek account components may be alphanumeric, as may Swiss and
 Latvian components. The CH adapter does not automatically support Liechtenstein.
+
+Spain source, limitations and controlled migration: [Spanish review](spain-source-review.md).
 
 ### Source processing
 

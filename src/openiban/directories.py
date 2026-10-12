@@ -33,6 +33,18 @@ class Source:
 
 
 SOURCES = {
+    "ES": Source(
+        "Banco de España",
+        "https://www.bde.es/webbe/es/estadisticas/otras-clasificaciones/clasificacion-entidades/"
+        "listas-instituciones-financieras/listas-instituciones-financieras-monetarias-pais/"
+        "lista-mfi-es.html",
+        "https://www.bde.es/webbe/es/estadisticas/otras-clasificaciones/clasificacion-entidades/"
+        "listas-instituciones-financieras/listas-instituciones-financieras-monetarias-pais/"
+        "lista-mfi-es.csv",
+        ("www.bde.es",),
+        "csv",
+        r"[0-9]{4}",
+    ),
     "NL": Source(
         "Betaalvereniging Nederland (provisional industry source)",
         "https://www.betaalvereniging.nl/kennisbank/iban-en-bic/",
@@ -215,6 +227,72 @@ def spreadsheet_rows(
         DefusedXmlException,
     ) as exc:
         raise ValueError("Invalid spreadsheet file.") from exc
+
+
+ES_HEADERS = [
+    "CÓDIGO EUROPEO",
+    "LEI",
+    "NOMBRE",
+    "CATEGORÍA",
+    "DIRECCIÓN",
+    "INFORME",
+    "ENTIDAD MATRIZ",
+    "CÓDIGO DE SUPERVISOR",
+]
+ES_CATEGORIES = {
+    "Entidad de crédito",
+    "Otra institución",
+    "Fondo del mercado monetario",
+    "Banco central",
+}
+
+
+def parse_es(content: bytes) -> Directory:
+    # The observed BdE export pads physical lines with spaces after the final
+    # quoted field. Trim that padding only, then parse strict comma CSV. This
+    # schema has one physical line per record; multiline fields fail closed.
+    records, seen, total, ignored = [], set(), 0, 0
+    try:
+        lines = io.StringIO(content.decode("utf-8-sig"), newline="")
+        header = next(lines, "").rstrip(" \t\r\n")
+        if next(csv.reader([header], strict=True), []) != ES_HEADERS:
+            raise ValueError("Unknown Banco de España CSV header.")
+        for line in lines:
+            total += 1
+            if total > MAX_ROWS:
+                raise ValueError("Too many Spanish source rows.")
+            row = next(csv.reader([line.rstrip(" \r\n")], strict=True), [])
+            if len(row) != 8:
+                raise ValueError("Spanish CSV requires exactly eight columns.")
+            row = [v.strip(" ") for v in row]
+            european, lei, name, category, address, report, parent, code = row
+            if (
+                any(len(v) > 2000 or any(ord(c) < 32 for c in v) for v in row)
+                or any(v.startswith(("=", "+", "@")) for v in row)
+                or not re.fullmatch(r"ES[A-Z0-9]{4,20}", european)
+                or (lei and not re.fullmatch(r"[A-Z0-9]{20}", lei))
+                or not name
+                or len(name) > 300
+                or category not in ES_CATEGORIES
+                or report not in {"Sí", "No"}
+                or (parent and not re.fullmatch(r"[A-Z0-9]{2,30}", parent))
+                or not re.fullmatch(
+                    r"FI[0-9]{4}" if category == "Fondo del mercado monetario" else r"[0-9]{4}",
+                    code,
+                )
+                or code in seen
+            ):
+                raise ValueError("Invalid, ambiguous or unknown Spanish institution row.")
+            seen.add(code)
+            # Monetary institutions are not all account-holding credit
+            # institutions. Neither Informe nor European ID is a bank code.
+            if category != "Entidad de crédito":
+                ignored += 1
+                continue
+            records.append(Record(code, name, None))
+    except (UnicodeError, csv.Error) as exc:
+        raise ValueError("Invalid Spanish CSV or UTF-8 encoding.") from exc
+    return Directory(records, total, ignored)
 
 
 def parse_ch(content: bytes) -> Directory:
@@ -512,6 +590,7 @@ def parse_nl(content: bytes) -> Directory:
 
 
 PARSERS = {
+    "ES": parse_es,
     "NL": parse_nl,
     "CH": parse_ch,
     "PL": parse_pl,
