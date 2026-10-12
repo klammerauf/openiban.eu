@@ -1,4 +1,4 @@
-"""Pure German IBAN syntax and ISO 7064 MOD-97-10 check.
+"""Pure IBAN syntax and ISO 7064 MOD-97-10 check.
 
 This does not check domestic account-number algorithms or account existence.
 """
@@ -43,6 +43,7 @@ def validate_german_iban(raw: str) -> Validation:
 # BBAN layouts from the SWIFT IBAN Registry and official country pages.
 COUNTRIES = {
     "DE": (22, r"[0-9]{18}", 8),
+    "ES": (24, r"[0-9]{20}", 4),
     "CH": (21, r"[0-9]{5}[A-Z0-9]{12}", 5),
     "PL": (28, r"[0-9]{24}", 8),
     "LT": (20, r"[0-9]{16}", 5),

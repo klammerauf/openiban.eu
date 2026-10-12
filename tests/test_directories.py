@@ -54,6 +54,12 @@ BE_HEADER = [
 
 
 def content(country):
+    if country == "ES":
+        return (
+            "CÓDIGO EUROPEO,LEI,NOMBRE,CATEGORÍA,DIRECCIÓN,INFORME,"
+            "ENTIDAD MATRIZ,CÓDIGO DE SUPERVISOR\r\n"
+            'ES0011,,Synthetic Bank,Entidad de crédito,Address,No,,"0011"    \r\n'
+        ).encode("utf-8-sig")
     if country == "NL":
         return xlsx(
             [
@@ -150,7 +156,11 @@ def content(country):
 def test_every_adapter_accepts_synthetic_native_format(country):
     parsed = parse_directory(country, content(country))
     assert parsed.records[0].name.startswith("Synthetic Bank")
-    assert parsed.records[0].bic.startswith("TEST")
+    assert (
+        parsed.records[0].bic is None
+        if country == "ES"
+        else (parsed.records[0].bic.startswith("TEST"))
+    )
 
 
 @pytest.mark.parametrize("country", SOURCES)
@@ -326,6 +336,7 @@ def iban(country, bban):
 
 
 EXAMPLES = {
+    "ES": "0011" + "0" * 16,
     "NL": "TEST" + "0" * 10,
     "CH": "00100" + "0" * 12,
     "PL": "10100000" + "0" * 16,
