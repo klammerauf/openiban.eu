@@ -62,6 +62,8 @@ def discover_url(country: str, page: bytes) -> str:
     for a in soup.select("a[href]"):
         url = urljoin(source.page, a["href"])
         path = urlsplit(url).path.lower()
+        if country == "NL" and path.endswith("/bic-lijst-nl.xlsx"):
+            links.add(validate_url(country, url))
         if country == "LT" and path.endswith("-en.csv") and "fik_kodai" in path:
             links.add(validate_url(country, url))
         if country == "LV" and path.endswith(".xls") and "bic_saraksts" in path:

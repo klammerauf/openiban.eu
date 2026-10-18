@@ -41,6 +41,9 @@ class DatasetInfo(BaseModel):
     source: str
     source_url: str
     imported_at: str
+    published_on: date | None = None
+    checked_at: str | None = None
+    disclaimer: str | None = None
 
 
 class BankInfo(BaseModel):
@@ -209,7 +212,7 @@ def create_app(engine: Engine | None = None) -> FastAPI:
             return response
         if bank is None:
             response.bank_lookup_status = "not_found"
-            response.bank_code_valid = False
+            response.bank_code_valid = None if country == "NL" else False
         elif bank["change_flag"] == "D":
             response.bank_lookup_status = "deleted"
             response.bank_code_valid = False

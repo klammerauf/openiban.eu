@@ -4,6 +4,7 @@ The German tables and updater retain their schema and semantics.
 """
 
 import hashlib
+from contextlib import nullcontext
 from dataclasses import asdict
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -21,7 +22,7 @@ from sqlalchemy import (
     select,
     update,
 )
-from sqlalchemy.engine import Engine
+from sqlalchemy.engine import Connection, Engine
 
 from openiban.directories import MAX_BYTES, SOURCES, parse_directory
 from openiban.directory_download import validate_url
@@ -60,6 +61,14 @@ active = Table(
     Column("country", String(2), primary_key=True),
     Column("dataset_id", ForeignKey("directory_versions.id")),
 )
+checks = Table(
+    "directory_checks",
+    metadata,
+    Column("country", String(2), primary_key=True),
+    Column("dataset_id", ForeignKey("directory_versions.id"), nullable=False),
+    Column("checked_at", String(40), nullable=False),
+)
+
 history = Table(
     "directory_activations",
     metadata,
@@ -74,7 +83,7 @@ history = Table(
 
 def initialize_directories(engine: Engine) -> None:
     # Separate additive tables; safe on databases created by older releases.
-    metadata.create_all(engine, tables=[versions, records, active, history])
+    metadata.create_all(engine, tables=[versions, records, active, history, checks])
     with engine.begin() as conn:
         existing = set(conn.execute(select(active.c.country)).scalars())
         for country in SOURCES.keys() - existing:
@@ -167,7 +176,7 @@ def activate_directory(
 ) -> None:
     if country not in SOURCES or not review_note.strip() or len(review_note) > 2000:
         raise ValueError("Country and documented source/usage review required.")
-    with engine.begin() as conn:
+    with nullcontext(engine) if isinstance(engine, Connection) else engine.begin() as conn:
         conn.execute(
             update(active).where(active.c.country == country).values(dataset_id=active.c.dataset_id)
         )
@@ -226,6 +235,29 @@ def lookup_directory(
             "source_url": version["source_url"],
             "imported_at": version["imported_at"],
         }
+        if country == "NL":
+            from openiban.netherlands import DISCLAIMER
+
+            checked = (
+                conn.execute(
+                    select(checks).where(
+                        checks.c.country == country, checks.c.dataset_id == version["id"]
+                    )
+                )
+                .mappings()
+                .first()
+            )
+            info["published_on"] = version["valid_from"]
+            info["checked_at"] = checked["checked_at"] if checked else None
+            info["disclaimer"] = DISCLAIMER
+            if (
+                not checked
+                or (
+                    (on_date or today()) - datetime.fromisoformat(checked["checked_at"]).date()
+                ).days
+                > 7
+            ):
+                info["status"] = "expired"
         bank = None
         if info["status"] == "current":
             # SI: exact five-digit issuer code first, otherwise two-digit bank prefix.

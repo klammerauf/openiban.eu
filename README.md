@@ -190,3 +190,5 @@ SMTP credentials and recipients are configured exclusively on the server.
 Daily downloads, quality checks and activation from the validity start date are
 available through the local maintainer CLI and systemd timers. Installation,
 thresholds, monitoring and rollback: [deployment/auto-update/README.md](deployment/auto-update/README.md).
+
+Dutch recurring import and deployment: [NL guide](docs/netherlands-source-review.md).

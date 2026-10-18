@@ -46,9 +46,9 @@ SOURCES = {
         r"[0-9]{4}",
     ),
     "NL": Source(
-        "Betaalvereniging Nederland (provisional industry source)",
-        "https://www.betaalvereniging.nl/kennisbank/iban-en-bic/",
-        "https://www.betaalvereniging.nl/wp-content/uploads/2025/11/BIC-lijst-NL.xlsx",
+        "Betaalvereniging Nederland",
+        "https://www.betaalvereniging.nl/en/knowledge-base/iban-and-bic/bic-code/",
+        None,
         ("www.betaalvereniging.nl",),
         "xlsx",
         r"[A-Z]{4}",
@@ -581,7 +581,7 @@ def parse_nl(content: bytes) -> Directory:
         if len(row) != 3 or not all(text(v) for v in row):
             raise ValueError("Incomplete Dutch BIC list row.")
         bank_bic, identifier, name = bic(row[0]), text(row[1]), text(row[2])
-        if not re.fullmatch(r"[A-Z]{4}", identifier) or bank_bic[:4] != identifier:
+        if not re.fullmatch(r"[A-Z]{4}", identifier) or not bank_bic or bank_bic[:4] != identifier:
             raise ValueError("Conflicting Dutch bank identifier and BIC.")
         if bank_bic[4:6] != "NL":
             raise ValueError("Dutch BIC must use country code NL.")
