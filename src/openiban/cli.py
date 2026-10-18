@@ -62,12 +62,18 @@ def main() -> None:
         )
         if name == "auto-check":
             command.add_argument("--activate-due", action="store_true")
+    nl = commands.add_parser("update-nl", help="Check and safely update the Dutch BIC list")
+    nl.add_argument("--state-dir", type=Path, default=Path("/var/lib/openiban/nl-updates"))
     args = parser.parse_args()
     engine = build_engine()
     try:
         if args.command == "init-db":
             initialize(engine)
             output = {"status": "initialized"}
+        elif args.command == "update-nl":
+            from openiban.netherlands import update_nl
+
+            output = update_nl(engine, args.state_dir)
         elif args.command == "import-bundesbank":
             output = stage_file(
                 engine, args.file, args.valid_from, args.valid_until, args.source_url

@@ -1,0 +1,8 @@
+[Unit]
+Description=Daily check of the Dutch BIC list
+[Timer]
+OnCalendar=*-*-* 05:40:00 Europe/Berlin
+RandomizedDelaySec=1800
+Persistent=true
+[Install]
+WantedBy=timers.target
