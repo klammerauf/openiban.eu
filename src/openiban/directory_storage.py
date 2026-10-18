@@ -90,6 +90,11 @@ def stage_directory(
     with path.open("rb") as handle:
         content = handle.read(MAX_BYTES + 1)
     parsed = parse_directory(country, content)
+    if country == "ES" and content.lstrip().startswith(b"{"):
+        from openiban.spain_target import TARGET_URL
+
+        if source_url != TARGET_URL:
+            raise ValueError("ES TARGET bundles must cite the TARGET PDF source URL.")
     if parsed.published_on and valid_from < parsed.published_on:
         raise ValueError("Validity start date precedes the official source date.")
     digest = hashlib.sha256(content).hexdigest()

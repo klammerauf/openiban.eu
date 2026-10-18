@@ -248,6 +248,10 @@ ES_CATEGORIES = {
 
 
 def parse_es(content: bytes) -> Directory:
+    if content.lstrip().startswith(b"{"):
+        from openiban.spain_target import parse_bundle
+
+        return parse_bundle(content)
     # The observed BdE export pads physical lines with spaces after the final
     # quoted field. Trim that padding only, then parse strict comma CSV. This
     # schema has one physical line per record; multiline fields fail closed.
