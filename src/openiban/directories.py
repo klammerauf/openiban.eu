@@ -47,7 +47,7 @@ SOURCES = {
     ),
     "NL": Source(
         "Betaalvereniging Nederland",
-        "https://www.betaalvereniging.nl/en/knowledge-base/iban-and-bic/bic-code/",
+        "https://www.betaalvereniging.nl/actueel/publicaties/",
         None,
         ("www.betaalvereniging.nl",),
         "xlsx",

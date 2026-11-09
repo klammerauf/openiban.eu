@@ -1,5 +1,6 @@
 """Public read-only HTTP API. Imports and activation are local CLI operations."""
 
+from collections.abc import Collection
 from contextlib import asynccontextmanager
 from datetime import date
 from typing import Literal
@@ -123,7 +124,13 @@ class RequestBoundary:
         await self.app(scope, bounded_receive, no_cache)
 
 
-def create_app(engine: Engine | None = None) -> FastAPI:
+RELEASE_COUNTRIES = ("DE", "NL")
+
+
+def create_app(
+    engine: Engine | None = None, *, enabled_countries: Collection[str] = COUNTRIES
+) -> FastAPI:
+    supported_countries = tuple(code for code in COUNTRIES if code in enabled_countries)
     @asynccontextmanager
     async def lifespan(app):
         app.state.engine = engine if engine is not None else build_engine()
@@ -169,8 +176,8 @@ def create_app(engine: Engine | None = None) -> FastAPI:
     def countries():
         return {
             "countries": [
-                {"code": code, "iban_length": spec[0], "bank_lookup_supported": True}
-                for code, spec in COUNTRIES.items()
+                {"code": code, "iban_length": COUNTRIES[code][0], "bank_lookup_supported": True}
+                for code in supported_countries
             ]
         }
 
@@ -181,7 +188,7 @@ def create_app(engine: Engine | None = None) -> FastAPI:
         responses={413: {"description": "Request too large"}},
     )
     def validate(payload: ValidationRequest, request: Request):
-        result = validate_iban(payload.iban)
+        result = validate_iban(payload.iban, supported_countries)
         response = ValidationResponse(
             normalized_iban=result.normalized,
             country_supported=result.country_supported,
@@ -225,4 +232,4 @@ def create_app(engine: Engine | None = None) -> FastAPI:
     return app
 
 
-app = create_app()
+app = create_app(enabled_countries=RELEASE_COUNTRIES)

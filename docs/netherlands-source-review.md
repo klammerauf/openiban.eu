@@ -1,13 +1,13 @@
 # Dutch BIC list and recurring import
 
-Verified 18 October 2026. Publisher and required attribution: **Betaalvereniging Nederland**.
+Source rechecked 9 November 2026. Publisher and required attribution: **Betaalvereniging Nederland**.
 The maintainer supplied written permission to use the list free of charge without
 formal licence agreement, conditional on attribution and the disclaimer below.
 This permission does not relicense the source data under the repository's MIT licence.
 
-Source: https://www.betaalvereniging.nl/en/knowledge-base/iban-and-bic/bic-code/
-Observed attachment: https://www.betaalvereniging.nl/wp-content/uploads/2025/11/BIC-lijst-NL.xlsx
-Observed workbook: 96 mappings, publication date 2 September 2026, one worksheet,
+Source: https://www.betaalvereniging.nl/actueel/publicaties/
+Observed attachment: https://www.betaalvereniging.nl/download/3828/
+Observed workbook: 97 mappings, publication date 3 November 2026, one worksheet,
 three columns (BIC, Identifier, payment service provider). Existing strict parser
 verified against the downloaded original; original data is not bundled.
 
@@ -19,9 +19,9 @@ Required notice, included in each NL API dataset response:
 
 The publisher announces changes via
 https://www.betaalvereniging.nl/en/news/category/iban-bic-list/feed/ .
-The workbook carries the last-update date; the URL contains an upload directory,
-not a version date. Daily full polling discovers exactly one official HTTPS
-BIC-lijst-NL.xlsx link on the source page and compares SHA-256, independent of RSS
+The workbook carries the last-update date. The old direct XLSX link returned
+HTTP 404. Daily polling finds publication 3828 in the official publication index,
+strips the cache-busting query, and compares SHA-256 independently of RSS
 availability. RSS is informational; no feed subscription or feed parser is installed.
 Downloads and redirects are host restricted, time and size bounded; spreadsheet
 formulas, malformed schema, duplicate identifiers and invalid mappings fail closed.
@@ -51,9 +51,9 @@ a subsequent updater will reapply the official snapshot unless its timer is stop
 
 ## Server installation (not performed by this change)
 
-This PR builds on feat/spain-entity-directory, which includes the European directory
-architecture. Merge/deploy that dependency before this change. Back up the database
-and install this release and its locked dependencies into /opt/openiban.eu/.venv.
+Install the DE/NL release as one revision, including the directory schema and
+NL updater. Back up the database and install the release and its locked
+dependencies into /opt/openiban.eu/.venv.
 Use the production database URL for every command; the supplied units assume SQLite.
 Run `openiban init-db` as the service user to create additive tables, then restart
 the API so the response model includes the notice. Run `openiban update-nl` as that

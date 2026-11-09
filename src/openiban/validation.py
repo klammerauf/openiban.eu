@@ -4,6 +4,7 @@ This does not check domestic account-number algorithms or account existence.
 """
 
 import re
+from collections.abc import Collection
 from dataclasses import dataclass
 
 
@@ -56,15 +57,15 @@ COUNTRIES = {
 }
 
 
-def validate_iban(raw: str) -> Validation:
+def validate_iban(raw: str, enabled_countries: Collection[str] = COUNTRIES) -> Validation:
     compact = "".join(raw.split())
     if not compact.isascii():
         return Validation(compact, False, False, None, False, "invalid_characters")
     normalized = compact.upper()
     country = normalized[:2]
-    if country == "DE":
+    if country == "DE" and country in enabled_countries:
         return validate_german_iban(raw)
-    supported = country in COUNTRIES
+    supported = country in COUNTRIES and country in enabled_countries
     if not re.fullmatch(r"[A-Z]{2}[0-9]{2}[A-Z0-9]+", normalized):
         return Validation(normalized, supported, False, None, False, "invalid_format")
     if not supported:

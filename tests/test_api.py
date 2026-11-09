@@ -3,7 +3,7 @@ from datetime import timedelta
 import pytest
 from fastapi.testclient import TestClient
 
-from openiban.api import create_app
+from openiban.api import RELEASE_COUNTRIES, create_app
 from openiban.storage import activate, build_engine, today
 from tests.conftest import bank_line, iban_for
 
@@ -124,3 +124,16 @@ def test_query_parameters_are_rejected_and_docs_work(engine):
         schema = client.get("/openapi.json").json()
         assert "/v1/validate" in schema["paths"]
         assert client.get("/v1/countries").json()["countries"][0]["code"] == "DE"
+
+
+
+def test_release_country_scope(engine):
+    with TestClient(create_app(engine, enabled_countries=RELEASE_COUNTRIES)) as client:
+        countries = client.get("/v1/countries").json()["countries"]
+        assert [country["code"] for country in countries] == ["DE", "NL"]
+
+        for iban in ("PL61109010140000071219812874", "ES9121000418450200051332"):
+            response = client.post("/v1/validate", json={"iban": iban}).json()
+            assert response["country_supported"] is False
+            assert response["reason"] == "unsupported_country"
+            assert response["bank_lookup_status"] == "not_checked"

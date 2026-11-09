@@ -13,7 +13,7 @@ from openiban.directory_storage import checks, list_directory_versions, lookup_d
 from openiban.netherlands import update_nl
 from openiban.storage import today
 
-URL = "https://www.betaalvereniging.nl/wp-content/uploads/2025/11/BIC-lijst-NL.xlsx"
+URL = "https://www.betaalvereniging.nl/download/3828/"
 
 
 def workbook(count=60, published=None, name="Example"):
@@ -33,11 +33,12 @@ def workbook(count=60, published=None, name="Example"):
 
 
 def test_discovery():
-    assert discover_url("NL", f'<a href="{URL}">list</a>'.encode()) == URL
+    page = b'<a href="/download/3828/?tmstv=123">list</a>'
+    assert discover_url("NL", page) == URL
     for page in [
         b"<html/>",
-        b'<a href="https://evil.test/BIC-lijst-NL.xlsx">x</a>',
-        f'<a href="{URL}">x</a><a href="/other/BIC-lijst-NL.xlsx">y</a>'.encode(),
+        b'<a href="https://evil.test/download/3828/">x</a>',
+        b'<a href="/download/3826/">Other publication</a>',
     ]:
         with pytest.raises(ValueError):
             discover_url("NL", page)
