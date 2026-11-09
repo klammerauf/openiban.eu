@@ -124,7 +124,7 @@ class RequestBoundary:
         await self.app(scope, bounded_receive, no_cache)
 
 
-RELEASE_COUNTRIES = ("DE", "NL", "PL")
+RELEASE_COUNTRIES = ("DE", "NL", "PL", "ES")
 
 
 def create_app(

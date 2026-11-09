@@ -152,7 +152,8 @@ Validation results return HTTP 200, including invalid IBANs or missing bank data
 HTTP 422 indicates an invalid request format, 413 an oversized body, and 400
 unsupported query parameters. Clients must evaluate the result fields.
 `GET /v1/countries` lists the countries enabled in the deployed API. This release
-enables Germany (DE), the Netherlands (NL), and Poland (PL).
+enables Germany (DE), the Netherlands (NL), Poland (PL), and Spain (ES).
+See the [Spanish source and review guide](docs/spain-target-bic.md) for BIC coverage.
 
 ## Tests
 
