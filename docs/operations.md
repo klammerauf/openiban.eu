@@ -50,3 +50,10 @@ External backups, a recovery test and external availability monitoring remain
 outstanding. The local email monitor cannot report a complete outage of its own
 server. The code is licensed under MIT. Operator and privacy notices remain to
 be defined. The website is planned at lima-city.
+
+## Spain extension
+
+Use the [Spain source review and controlled migration procedure](spain-source-review.md)
+for additive initialization, manual staging/activation and country-specific rollback.
+DE update schedules and readiness remain unchanged. No production deployment is
+part of this change.

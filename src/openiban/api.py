@@ -1,5 +1,6 @@
 """Public read-only HTTP API. Imports and activation are local CLI operations."""
 
+from collections.abc import Collection
 from contextlib import asynccontextmanager
 from datetime import date
 from typing import Literal
@@ -12,8 +13,9 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 
 from openiban import __version__
+from openiban.directory_storage import lookup_directory
 from openiban.storage import build_engine, lookup
-from openiban.validation import validate_german_iban
+from openiban.validation import COUNTRIES, validate_iban
 
 
 class ValidationRequest(BaseModel):
@@ -40,6 +42,9 @@ class DatasetInfo(BaseModel):
     source: str
     source_url: str
     imported_at: str
+    published_on: date | None = None
+    checked_at: str | None = None
+    disclaimer: str | None = None
 
 
 class BankInfo(BaseModel):
@@ -56,7 +61,7 @@ class ValidationResponse(BaseModel):
     normalized_iban: str
     country_supported: bool
     iban_valid: bool | None = Field(
-        description="German format and IBAN checksum only; does not verify account existence."
+        description="Country format and IBAN checksum; does not verify account existence."
     )
     reason: Literal[
         "valid", "invalid_characters", "invalid_format", "invalid_checksum", "unsupported_country"
@@ -66,7 +71,7 @@ class ValidationResponse(BaseModel):
         "not_checked", "unavailable", "stale", "found", "not_found", "deleted"
     ]
     bank_code_valid: bool | None = Field(
-        description="Bank code in the current active dataset; null means not verifiable."
+        description="Bank identifier in the current active dataset; null means not verifiable."
     )
     bank: BankInfo | None = None
     data: DatasetInfo | None = None
@@ -119,7 +124,14 @@ class RequestBoundary:
         await self.app(scope, bounded_receive, no_cache)
 
 
-def create_app(engine: Engine | None = None) -> FastAPI:
+RELEASE_COUNTRIES = ("DE", "NL")
+
+
+def create_app(
+    engine: Engine | None = None, *, enabled_countries: Collection[str] = COUNTRIES
+) -> FastAPI:
+    supported_countries = tuple(code for code in COUNTRIES if code in enabled_countries)
+
     @asynccontextmanager
     async def lifespan(app):
         app.state.engine = engine if engine is not None else build_engine()
@@ -132,7 +144,7 @@ def create_app(engine: Engine | None = None) -> FastAPI:
         version=__version__,
         lifespan=lifespan,
         description=(
-            "German IBANs: format, MOD-97 and bank data from the Bundesbank file. "
+            "European IBANs: format, MOD-97 and local official bank directories. "
             "Does not verify account existence, account holders or domestic account checksums."
         ),
     )
@@ -163,7 +175,12 @@ def create_app(engine: Engine | None = None) -> FastAPI:
 
     @app.get("/v1/countries", tags=["IBAN"])
     def countries():
-        return {"countries": [{"code": "DE", "iban_length": 22, "bank_lookup_supported": True}]}
+        return {
+            "countries": [
+                {"code": code, "iban_length": COUNTRIES[code][0], "bank_lookup_supported": True}
+                for code in supported_countries
+            ]
+        }
 
     @app.post(
         "/v1/validate",
@@ -172,7 +189,7 @@ def create_app(engine: Engine | None = None) -> FastAPI:
         responses={413: {"description": "Request too large"}},
     )
     def validate(payload: ValidationRequest, request: Request):
-        result = validate_german_iban(payload.iban)
+        result = validate_iban(payload.iban, supported_countries)
         response = ValidationResponse(
             normalized_iban=result.normalized,
             country_supported=result.country_supported,
@@ -185,7 +202,12 @@ def create_app(engine: Engine | None = None) -> FastAPI:
         if not result.iban_valid:
             return response
         try:
-            info, bank = lookup(request.app.state.engine, result.normalized[4:12])
+            country = result.normalized[:2]
+            code = result.normalized[4 : 4 + COUNTRIES[country][2]]
+            if country == "DE":
+                info, bank = lookup(request.app.state.engine, code)
+            else:
+                info, bank = lookup_directory(request.app.state.engine, country, code)
         except SQLAlchemyError:
             response.bank_lookup_status = "unavailable"
             return response
@@ -198,7 +220,7 @@ def create_app(engine: Engine | None = None) -> FastAPI:
             return response
         if bank is None:
             response.bank_lookup_status = "not_found"
-            response.bank_code_valid = False
+            response.bank_code_valid = None if country == "NL" else False
         elif bank["change_flag"] == "D":
             response.bank_lookup_status = "deleted"
             response.bank_code_valid = False
@@ -211,4 +233,4 @@ def create_app(engine: Engine | None = None) -> FastAPI:
     return app
 
 
-app = create_app()
+app = create_app(enabled_countries=RELEASE_COUNTRIES)

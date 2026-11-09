@@ -44,3 +44,9 @@ Development used the publicly available file offered on 5 October 2026, valid
 from 7 September to 6 December 2026. The parser was checked against this real
 file and synthetic error cases. Future imports must not reuse download links
 or validity periods without verification. Regular updates are quarterly.
+
+## Additional European directories
+
+New adapters, source formats, terms of use, verification status and manual
+approval steps are documented in [European bank directories](european-directories.md).
+The original German import and update architecture is retained.

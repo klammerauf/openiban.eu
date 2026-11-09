@@ -88,8 +88,11 @@ def build_engine(url: str | None = None) -> Engine:
 
 
 def initialize(engine: Engine) -> None:
-    # Initial schema only; future changes require migrations. Run before serving.
+    from openiban.directory_storage import initialize_directories
+
+    # Existing German schema is unchanged; new directories use additive tables.
     metadata.create_all(engine)
+    initialize_directories(engine)
     with engine.begin() as conn:
         if (
             conn.execute(select(active_dataset.c.id).where(active_dataset.c.id == 1)).first()

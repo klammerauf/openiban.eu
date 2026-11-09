@@ -1,7 +1,7 @@
 # OpenIBAN.eu
 
 Independent, non-commercial project for IBAN validation and bank data lookup for
-Germany in the initial version. The API uses
+DE, ES, CH, PL, LT, BE, CZ, LV, SI, GR and NL. The API uses
 FastAPI, versioned Bundesbank data and automatic updates. No ERP dependency.
 
 ## Use the public service without installing it
@@ -35,7 +35,7 @@ below are intended for development and self-hosting.
 
 ## Features
 
-- German IBANs: remove spaces, uppercase ASCII letters,
+- IBANs from the eleven listed countries: remove spaces, uppercase ASCII letters,
   validate country format/length and MOD-97.
 - Return bank name, BIC, BLZ, postal code and city from the active Bundesbank dataset.
 - Distinguish unknown/deleted bank codes, missing data and expired data.
@@ -47,7 +47,12 @@ below are intended for development and self-hosting.
 existence, account ownership, solvency or domestic account checksum algorithms.
 The bank-code status is reported separately in `bank_code_valid`.
 Other countries return `reason: unsupported_country` and `iban_valid: null`.
-Additional country importers are being developed in [draft PR #1](https://github.com/klammerauf/openiban.eu/pull/1).
+The new importers are not automatically activated on the public service.
+Source review, instructions and outstanding approvals: [European directories](docs/european-directories.md).
+
+Spain uses a separate reviewed country dataset with four-digit entity codes.
+The BdE CSV has no BICs; only credit institutions enter the lookup. See the
+[Spanish source review and migration procedure](docs/spain-source-review.md).
 
 ## Run locally (Python 3.12)
 
@@ -146,7 +151,8 @@ may therefore contain `bank_lookup_status: not_found`.
 Validation results return HTTP 200, including invalid IBANs or missing bank data.
 HTTP 422 indicates an invalid request format, 413 an oversized body, and 400
 unsupported query parameters. Clients must evaluate the result fields.
-`GET /v1/countries` lists supported countries.
+`GET /v1/countries` lists the countries enabled in the deployed API. This release
+enables Germany (DE) and the Netherlands (NL).
 
 ## Tests
 
@@ -165,7 +171,8 @@ uv pip compile pyproject.toml --extra dev --python-version 3.12 --output-file re
 
 ## Data source, license and next steps
 
-**German source: Deutsche Bundesbank.** See
+**German source: Deutsche Bundesbank.** Additional countries:
+[Importers and terms of use](docs/european-directories.md). See also
 [Sources and terms of use](docs/data-sources.md).
 The code is licensed under the [MIT License](LICENSE).
 Copyright (c) 2026 Sebastian Arnold. Bundesbank data terms apply independently;
@@ -184,3 +191,5 @@ SMTP credentials and recipients are configured exclusively on the server.
 Daily downloads, quality checks and activation from the validity start date are
 available through the local maintainer CLI and systemd timers. Installation,
 thresholds, monitoring and rollback: [deployment/auto-update/README.md](deployment/auto-update/README.md).
+
+Dutch recurring import and deployment: [NL guide](docs/netherlands-source-review.md).

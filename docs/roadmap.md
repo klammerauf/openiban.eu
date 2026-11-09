@@ -27,7 +27,9 @@ Germany at launch, domain `openiban.eu`, website planned at lima-city.
 
 Adapting a company FastAPI application as an API client is a later, separate
 integration task. It is neither a prerequisite nor part of this personal
-repository. Additional countries remain outside the initial version.
+repository. Additional country adapters are available for the next implementation;
+see [Source review and outstanding approvals](european-directories.md).
+Verification of the original Greek file and usage questions for PL/LV/GR remain open.
 
 Implemented: HTTPS, proxy rate limits, local daily backups and SMTP warnings.
 Outstanding: external outage monitoring, external backups and a recovery test.
