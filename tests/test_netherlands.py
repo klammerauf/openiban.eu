@@ -10,7 +10,7 @@ from openiban.api import create_app
 from openiban.directories import parse_directory
 from openiban.directory_download import discover_url
 from openiban.directory_storage import checks, list_directory_versions, lookup_directory
-from openiban.netherlands import update_nl
+from openiban.directory_updates import update_nl
 from openiban.storage import today
 
 URL = "https://www.betaalvereniging.nl/download/3828/"
@@ -45,7 +45,9 @@ def test_discovery():
 
 
 def test_update_and_freshness(engine, tmp_path, monkeypatch):
-    monkeypatch.setattr("openiban.netherlands.download_directory", lambda _: (workbook(), URL))
+    monkeypatch.setattr(
+        "openiban.directory_updates.download_directory", lambda _: (workbook(), URL)
+    )
     first = update_nl(engine, tmp_path)
     assert first["status"] == "updated"
     assert update_nl(engine, tmp_path)["status"] == "unchanged"
@@ -75,7 +77,7 @@ def test_update_and_freshness(engine, tmp_path, monkeypatch):
         workbook(published=today() + timedelta(days=1)),
     ]:
         monkeypatch.setattr(
-            "openiban.netherlands.download_directory", lambda _, c=content: (c, URL)
+            "openiban.directory_updates.download_directory", lambda _, c=content: (c, URL)
         )
         with pytest.raises(ValueError):
             update_nl(engine, tmp_path)
@@ -85,9 +87,13 @@ def test_update_and_freshness(engine, tmp_path, monkeypatch):
 
 
 def test_small_update_and_removal(engine, tmp_path, monkeypatch):
-    monkeypatch.setattr("openiban.netherlands.download_directory", lambda _: (workbook(), URL))
+    monkeypatch.setattr(
+        "openiban.directory_updates.download_directory", lambda _: (workbook(), URL)
+    )
     update_nl(engine, tmp_path)
-    monkeypatch.setattr("openiban.netherlands.download_directory", lambda _: (workbook(59), URL))
+    monkeypatch.setattr(
+        "openiban.directory_updates.download_directory", lambda _: (workbook(59), URL)
+    )
     assert update_nl(engine, tmp_path)["changed"] == 1
     assert len(list_directory_versions(engine, "NL")) == 2
 
@@ -104,14 +110,18 @@ def test_missing_bic_rejected():
 
 
 def test_activation_failure_rolls_back_freshness(engine, tmp_path, monkeypatch):
-    monkeypatch.setattr("openiban.netherlands.download_directory", lambda _: (workbook(), URL))
+    monkeypatch.setattr(
+        "openiban.directory_updates.download_directory", lambda _: (workbook(), URL)
+    )
     initial = update_nl(engine, tmp_path)
-    monkeypatch.setattr("openiban.netherlands.download_directory", lambda _: (workbook(59), URL))
+    monkeypatch.setattr(
+        "openiban.directory_updates.download_directory", lambda _: (workbook(59), URL)
+    )
 
     def fail(*args, **kwargs):
         raise ValueError("simulated activation failure")
 
-    monkeypatch.setattr("openiban.netherlands.activate_directory", fail)
+    monkeypatch.setattr("openiban.directory_updates.activate_directory", fail)
     with pytest.raises(ValueError, match="simulated"):
         update_nl(engine, tmp_path)
     info, bank = lookup_directory(engine, "NL", "AAAA")

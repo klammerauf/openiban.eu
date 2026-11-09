@@ -152,7 +152,7 @@ Validation results return HTTP 200, including invalid IBANs or missing bank data
 HTTP 422 indicates an invalid request format, 413 an oversized body, and 400
 unsupported query parameters. Clients must evaluate the result fields.
 `GET /v1/countries` lists the countries enabled in the deployed API. This release
-enables Germany (DE) and the Netherlands (NL).
+enables Germany (DE), the Netherlands (NL), and Poland (PL).
 
 ## Tests
 
