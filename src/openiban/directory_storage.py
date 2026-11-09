@@ -232,11 +232,11 @@ def lookup_directory(
             "valid_until": version["valid_until"],
             "status": dataset_status(dict(version), on_date or today()),
             "source": "Source: " + SOURCES[country].publisher,
-            "source_url": version["source_url"],
+            "source_url": "https://www.nbp.pl/" if country == "PL" else version["source_url"],
             "imported_at": version["imported_at"],
         }
-        if country == "NL":
-            from openiban.netherlands import DISCLAIMER
+        if country in ("NL", "PL"):
+            from openiban.directory_updates import NL_DISCLAIMER
 
             checked = (
                 conn.execute(
@@ -247,9 +247,9 @@ def lookup_directory(
                 .mappings()
                 .first()
             )
-            info["published_on"] = version["valid_from"]
+            info["published_on"] = version["valid_from"] if country == "NL" else None
             info["checked_at"] = checked["checked_at"] if checked else None
-            info["disclaimer"] = DISCLAIMER
+            info["disclaimer"] = NL_DISCLAIMER if country == "NL" else None
             if (
                 not checked
                 or (

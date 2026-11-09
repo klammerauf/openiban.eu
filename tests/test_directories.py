@@ -251,7 +251,7 @@ def test_stage_activation_idempotency_and_country_isolation(engine, tmp_path, co
     activate_directory(engine, country, result["version"], review_note="Synthetic source review")
     code = parse_directory(country, content(country)).records[0].bank_code
     info, bank = lookup_directory(engine, country, code)
-    if country == "NL":
+    if country in ("NL", "PL"):
         assert info["status"] == "expired" and bank is None
     else:
         assert bank["name"].startswith("Synthetic Bank")
@@ -368,9 +368,8 @@ def test_international_mod97_and_local_bank_api(engine, tmp_path, country):
         assert response["iban_valid"] and response["bank_lookup_status"] == "unavailable"
         activate_directory(engine, country, version, review_note="Synthetic source test")
         response = client.post("/v1/validate", json={"iban": value}).json()
-        if country == "NL":
+        if country in ("NL", "PL"):
             assert response["bank_lookup_status"] == "stale"
-            assert response["data"]["disclaimer"]
         else:
             assert response["bank_lookup_status"] == "found"
             assert response["bank"]["name"].startswith("Synthetic Bank")

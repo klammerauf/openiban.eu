@@ -64,16 +64,18 @@ def main() -> None:
             command.add_argument("--activate-due", action="store_true")
     nl = commands.add_parser("update-nl", help="Check and safely update the Dutch BIC list")
     nl.add_argument("--state-dir", type=Path, default=Path("/var/lib/openiban/nl-updates"))
+    pl = commands.add_parser("update-pl", help="Check and safely update the Polish EWIB snapshot")
+    pl.add_argument("--state-dir", type=Path, default=Path("/var/lib/openiban/pl-updates"))
     args = parser.parse_args()
     engine = build_engine()
     try:
         if args.command == "init-db":
             initialize(engine)
             output = {"status": "initialized"}
-        elif args.command == "update-nl":
-            from openiban.netherlands import update_nl
+        elif args.command in ("update-nl", "update-pl"):
+            from openiban.directory_updates import update_directory
 
-            output = update_nl(engine, args.state_dir)
+            output = update_directory(engine, args.state_dir, args.command[-2:].upper())
         elif args.command == "import-bundesbank":
             output = stage_file(
                 engine, args.file, args.valid_from, args.valid_until, args.source_url
