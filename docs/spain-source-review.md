@@ -1,5 +1,8 @@
 # Spain: source review and controlled operation
 
+For the optional reviewed TARGET BIC supplement added on 18 October 2026, see
+[spain-target-bic.md](spain-target-bic.md). The CSV-only behavior below remains unchanged.
+
 Reviewed 12 October 2026. This change is not deployed. It builds on the versioned
 European directory model in PR #1; Germany's schema, active data, updater,
 readiness semantics and timers retain their existing behavior.
