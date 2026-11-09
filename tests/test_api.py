@@ -126,7 +126,6 @@ def test_query_parameters_are_rejected_and_docs_work(engine):
         assert client.get("/v1/countries").json()["countries"][0]["code"] == "DE"
 
 
-
 def test_release_country_scope(engine):
     with TestClient(create_app(engine, enabled_countries=RELEASE_COUNTRIES)) as client:
         countries = client.get("/v1/countries").json()["countries"]

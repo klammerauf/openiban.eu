@@ -131,6 +131,7 @@ def create_app(
     engine: Engine | None = None, *, enabled_countries: Collection[str] = COUNTRIES
 ) -> FastAPI:
     supported_countries = tuple(code for code in COUNTRIES if code in enabled_countries)
+
     @asynccontextmanager
     async def lifespan(app):
         app.state.engine = engine if engine is not None else build_engine()
